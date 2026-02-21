@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Flow – Maintenance & Service Logs</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── variables ── */
+    :root{
+      --odoo-purple:#714B67;--odoo-primary:#017E84;--odoo-accent:#00C5CD;
+      --odoo-gold:#F0A500;--bg-base:#0D0D0D;--bg-surface:#141414;
+      --bg-card:#1A1A1A;--bg-hover:#222;--border:#2A2A2A;--border-bright:#333;
+      --text-primary:#F0F0F0;--text-secondary:#888;--text-muted:#555;
+      --danger:#E74C3C;--success:#27AE60;--warning:#F39C12;--info:#2980B9;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Sora',sans-serif;background:var(--bg-base);color:var(--text-primary);min-height:100vh;overflow-x:hidden}
+
+    /* ── nav ── */
+    .topnav{background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;height:56px;gap:32px;position:sticky;top:0;z-index:100}
+    .logo{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;color:var(--odoo-accent);text-decoration:none}
+    .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .nav-links{display:flex;gap:4px;flex:1}
+    .nav-link{padding:6px 14px;border-radius:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;transition:all .2s;white-space:nowrap}
+    .nav-link:hover{background:var(--bg-hover);color:var(--text-primary)}
+    .nav-link.active{background:rgba(0,197,205,.12);color:var(--odoo-accent)}
+    .nav-actions{display:flex;align-items:center;gap:12px}
+    .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer}
+
+    /* ── layout ── */
+    .main{display:flex;height:calc(100vh - 56px)}
+
+    /* ── sidebar ── */
+    .sidebar{width:220px;background:var(--bg-surface);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;overflow-y:auto}
+    .sidebar-section{padding:8px 16px 4px;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:var(--text-secondary);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+    .sidebar-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+    .sidebar-item.active{background:rgba(0,197,205,.08);color:var(--odoo-accent);border-left-color:var(--odoo-accent)}
+    .sidebar-item .icon{font-size:16px;width:20px;text-align:center}
+
+    /* ── content ── */
+    .content{flex:1;overflow-y:auto;background:var(--bg-base)}
+
+    /* ── page header ── */
+    .page-header{padding:24px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .breadcrumb{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-family:'IBM Plex Mono',monospace}
+    .breadcrumb span{color:var(--odoo-accent)}
+    .page-title{font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-.3px}
+    .page-title small{display:block;font-size:13px;font-weight:300;color:var(--text-secondary);margin-top:2px}
+    .btn-new{display:flex;align-items:center;gap:8px;background:var(--odoo-primary);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap;box-shadow:0 0 20px rgba(1,126,132,.3)}
+    .btn-new:hover{background:var(--odoo-accent);box-shadow:0 0 28px rgba(0,197,205,.4);transform:translateY(-1px)}
+
+    /* ── toolbar ── */
+    .toolbar{padding:16px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .search-wrap{flex:1;min-width:240px;position:relative}
+    .search-input{width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:9px 16px 9px 38px;font-size:13px;color:var(--text-primary);font-family:'Sora',sans-serif;outline:none;transition:border-color .2s}
+    .search-input::placeholder{color:var(--text-muted)}
+    .search-input:focus{border-color:var(--odoo-primary)}
+    .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px}
+    .toolbar-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:9px 14px;border-radius:8px;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .toolbar-btn:hover{border-color:var(--odoo-primary);color:var(--odoo-accent)}
+
+    /* ── stats ── */
+    .stats-row{padding:0 28px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+    .stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;transition:border-color .2s}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%}
+    .stat-card.total::before{background:var(--odoo-accent)}
+    .stat-card.s-new::before{background:var(--info)}
+    .stat-card.s-progress::before{background:var(--warning)}
+    .stat-card.s-done::before{background:var(--success)}
+    .stat-card:hover{border-color:var(--border-bright)}
+    .stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px}
+    .stat-value{font-size:28px;font-weight:700;line-height:1}
+    .stat-card.total .stat-value{color:var(--odoo-accent)}
+    .stat-card.s-new .stat-value{color:#5DADE2}
+    .stat-card.s-progress .stat-value{color:var(--warning)}
+    .stat-card.s-done .stat-value{color:var(--success)}
+    .stat-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+    /* ── table ── */
+    .table-wrap{padding:0 28px 28px}
+    .table-container{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    table{width:100%;border-collapse:collapse}
+    thead{background:var(--bg-surface);border-bottom:1px solid var(--border)}
+    th{padding:12px 16px;text-align:left;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;cursor:pointer;white-space:nowrap;user-select:none;transition:color .2s}
+    th:hover{color:var(--odoo-accent)}
+    th .sort-icon{margin-left:4px;opacity:.4}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:var(--bg-hover)}
+    td{padding:14px 16px;font-size:13px;vertical-align:middle}
+
+    .logid-badge{display:inline-flex;align-items:center;background:rgba(113,75,103,.18);border:1px solid rgba(113,75,103,.35);color:#C89BC0;padding:4px 10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:1px}
+    .vehicle-name{font-weight:600;color:var(--odoo-accent);font-size:13px}
+    .issue-text{color:var(--text-secondary);font-size:12.5px;max-width:260px}
+    .date-text{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-secondary);white-space:nowrap}
+    .cost-text{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--odoo-gold);white-space:nowrap}
+
+    .status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+    .status-badge::before{content:'';width:6px;height:6px;border-radius:50%}
+    .status-new{background:rgba(41,128,185,.12);color:#5DADE2;border:1px solid rgba(41,128,185,.25)}
+    .status-new::before{background:#5DADE2;animation:pulse 1.8s infinite}
+    .status-progress{background:rgba(243,156,18,.12);color:var(--warning);border:1px solid rgba(243,156,18,.25)}
+    .status-progress::before{background:var(--warning);animation:pulse 1.2s infinite}
+    .status-done{background:rgba(39,174,96,.12);color:#5CDB95;border:1px solid rgba(39,174,96,.25)}
+    .status-done::before{background:#5CDB95}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+    .actions{display:flex;align-items:center;gap:6px}
+    .action-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all .2s}
+    .action-btn:hover{border-color:var(--odoo-primary);color:var(--odoo-accent);background:rgba(0,197,205,.08)}
+    .action-btn.del:hover{border-color:var(--danger);color:var(--danger);background:rgba(231,76,60,.08)}
+
+    /* ── modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .25s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;width:500px;max-width:95vw;transform:translateY(16px) scale(.97);transition:transform .25s;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+    .modal-overlay.open .modal{transform:translateY(0) scale(1)}
+    .modal-header{padding:20px 24px;background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .modal-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px}
+    .modal-title-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+    .modal-close:hover{border-color:var(--danger);color:var(--danger)}
+    .modal-body{padding:24px;display:flex;flex-direction:column;gap:16px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-group label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace}
+    .form-control{background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text-primary);font-family:'Sora',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;resize:vertical}
+    .form-control::placeholder{color:var(--text-muted)}
+    .form-control:focus{border-color:var(--odoo-primary);box-shadow:0 0 0 3px rgba(1,126,132,.12)}
+    select.form-control{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+    .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:10px}
+    .btn-cancel{background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:9px 20px;border-radius:8px;font-size:13px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s}
+    .btn-cancel:hover{border-color:var(--border-bright);color:var(--text-primary)}
+    .btn-save{background:var(--odoo-primary);border:none;color:#fff;padding:9px 24px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .btn-save:hover{background:var(--odoo-accent);box-shadow:0 0 20px rgba(0,197,205,.35)}
+
+    /* ── toast ── */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg-card);border:1px solid var(--success);color:var(--text-primary);padding:14px 20px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 20px rgba(39,174,96,.2);z-index:2000;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+    .toast.show{transform:translateX(0)}
+    .toast-icon{font-size:18px}
+
+    /* ── scrollbar ── */
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+  </style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <a class="logo" href="#">
+    <div class="logo-icon">🚛</div>
+    Fleet Flow
+  </a>
+  <div class="nav-links">
+    <div class="nav-link">Dashboard</div>
+    <div class="nav-link">Fleet</div>
+    <div class="nav-link">Trips</div>
+    <div class="nav-link">Drivers</div>
+    <div class="nav-link active">Maintenance</div>
+    <div class="nav-link">Reports</div>
+  </div>
+  <div class="nav-actions">
+    <div style="font-size:18px;cursor:pointer;color:var(--text-muted)">🔔</div>
+    <div style="font-size:18px;cursor:pointer;color:var(--text-muted)">⚙️</div>
+    <div class="avatar">AD</div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Fleet</div>
+    <div class="sidebar-item"><span class="icon">🚗</span> Vehicles</div>
+    <div class="sidebar-item"><span class="icon">👤</span> Drivers</div>
+    <div class="sidebar-item"><span class="icon">📋</span> Assignments</div>
+    <div class="sidebar-section">Operations</div>
+    <div class="sidebar-item"><span class="icon">🗺️</span> Live Tracking</div>
+    <div class="sidebar-item"><span class="icon">📦</span> Trips</div>
+    <div class="sidebar-item"><span class="icon">⛽</span> Fuel Logs</div>
+    <div class="sidebar-section">Maintenance</div>
+    <div class="sidebar-item active"><span class="icon">🔧</span> Services</div>
+    <div class="sidebar-item"><span class="icon">📅</span> Schedule</div>
+    <div class="sidebar-section">Analytics</div>
+    <div class="sidebar-item"><span class="icon">📊</span> Reports</div>
+    <div class="sidebar-item"><span class="icon">💰</span> Costs</div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">Fleet Flow / Maintenance / <span>Service Logs</span></div>
+        <h1 class="page-title">
+          Maintenance &amp; Service Logs
+          <small>Track issues, repairs &amp; scheduled services for your fleet</small>
+        </h1>
+      </div>
+      <button class="btn-new" onclick="openModal()">＋ Create New Service</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" type="text" placeholder="Search by vehicle, issue, Log ID..." oninput="filterTable(this.value)">
+      </div>
+      <button class="toolbar-btn">⊞ Group by</button>
+      <button class="toolbar-btn">⚗️ Filter</button>
+      <button class="toolbar-btn">⇅ Sort by</button>
+      <button class="toolbar-btn">⬇ Export</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card total">
+        <div class="stat-label">Total Logs</div>
+        <div class="stat-value" id="stat-total">4</div>
+        <div class="stat-sub">all records</div>
+      </div>
+      <div class="stat-card s-new">
+        <div class="stat-label">New</div>
+        <div class="stat-value" id="stat-new">2</div>
+        <div class="stat-sub">pending review</div>
+      </div>
+      <div class="stat-card s-progress">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value" id="stat-progress">1</div>
+        <div class="stat-sub">being serviced</div>
+      </div>
+      <div class="stat-card s-done">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value" id="stat-done">1</div>
+        <div class="stat-sub">resolved</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Log ID <span class="sort-icon">↕</span></th>
+              <th>Vehicle <span class="sort-icon">↕</span></th>
+              <th>Issue / Service</th>
+              <th>Date <span class="sort-icon">↕</span></th>
+              <th>Cost</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="serviceTable">
+            <tr>
+              <td><span class="logid-badge">#321</span></td>
+              <td><span class="vehicle-name">TATA Ace</span></td>
+              <td class="issue-text">Engine Issue — overheating reported by driver</td>
+              <td class="date-text">20 Feb 2025</td>
+              <td class="cost-text">₹10,000</td>
+              <td><span class="status-badge status-new">New</span></td>
+              <td><div class="actions">
+                <button class="action-btn" title="View">👁</button>
+                <button class="action-btn" title="Edit">✏️</button>
+                <button class="action-btn del" title="Delete" onclick="deleteRow(this)">✕</button>
+              </div></td>
+            </tr>
+            <tr>
+              <td><span class="logid-badge">#322</span></td>
+              <td><span class="vehicle-name">Mahindra Furio</span></td>
+              <td class="issue-text">Scheduled Oil Change &amp; Filter Replacement</td>
+              <td class="date-text">18 Feb 2025</td>
+              <td class="cost-text">₹3,500</td>
+              <td><span class="status-badge status-done">Completed</span></td>
+              <td><div class="actions">
+                <button class="action-btn" title="View">👁</button>
+                <button class="action-btn" title="Edit">✏️</button>
+                <button class="action-btn del" title="Delete" onclick="deleteRow(this)">✕</button>
+              </div></td>
+            </tr>
+            <tr>
+              <td><span class="logid-badge">#323</span></td>
+              <td><span class="vehicle-name">Eicher Pro 3015</span></td>
+              <td class="issue-text">Brake pad replacement — rear axle</td>
+              <td class="date-text">15 Feb 2025</td>
+              <td class="cost-text">₹7,200</td>
+              <td><span class="status-badge status-progress">In Progress</span></td>
+              <td><div class="actions">
+                <button class="action-btn" title="View">👁</button>
+                <button class="action-btn" title="Edit">✏️</button>
+                <button class="action-btn del" title="Delete" onclick="deleteRow(this)">✕</button>
+              </div></td>
+            </tr>
+            <tr>
+              <td><span class="logid-badge">#324</span></td>
+              <td><span class="vehicle-name">Ashok Leyland Boss</span></td>
+              <td class="issue-text">Tyre puncture — front left tyre replaced</td>
+              <td class="date-text">12 Feb 2025</td>
+              <td class="cost-text">₹1,800</td>
+              <td><span class="status-badge status-new">New</span></td>
+              <td><div class="actions">
+                <button class="action-btn" title="View">👁</button>
+                <button class="action-btn" title="Edit">✏️</button>
+                <button class="action-btn del" title="Delete" onclick="deleteRow(this)">✕</button>
+              </div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="modal-title-icon">🔧</div>
+        New Service Log
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Vehicle Name *</label>
+        <input class="form-control" id="f-vehicle" type="text" placeholder="e.g. TATA Ace, Mahindra Furio...">
+      </div>
+      <div class="form-group">
+        <label>Issue / Service *</label>
+        <input class="form-control" id="f-issue" type="text" placeholder="e.g. Engine Issue, Oil Change...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input class="form-control" id="f-date" type="date">
+        </div>
+        <div class="form-group">
+          <label>Cost (₹)</label>
+          <input class="form-control" id="f-cost" type="number" placeholder="e.g. 10000">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select class="form-control" id="f-status">
+          <option value="New">New</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea class="form-control" id="f-notes" rows="2" placeholder="Additional details..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveService()">💾 Create Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✅</span>
+  <div>
+    <div style="font-weight:600;font-size:13px">Service Log Created!</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">Added to maintenance records.</div>
+  </div>
+</div>
+
+<script>
+  /* ── state ── */
+  let logCounter = 324;
+  const stats = { total:4, new:2, progress:1, done:1 };
+
+  /* ── modal ── */
+  function openModal(){
+    document.getElementById('modalOverlay').classList.add('open');
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  }
+  function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+  function closeModalOutside(e){ if(e.target===document.getElementById('modalOverlay')) closeModal(); }
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+  /* ── save ── */
+  function saveService(){
+    const vehicle = document.getElementById('f-vehicle').value.trim();
+    const issue   = document.getElementById('f-issue').value.trim();
+    const date    = document.getElementById('f-date').value;
+    const cost    = document.getElementById('f-cost').value.trim();
+    const status  = document.getElementById('f-status').value;
+
+    if(!vehicle||!issue||!date){ alert('Please fill in: Vehicle Name, Issue/Service, and Date.'); return; }
+
+    logCounter++;
+    const costDisplay = cost ? '₹'+parseInt(cost).toLocaleString('en-IN') : '—';
+    const dateDisplay = date ? new Date(date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const cls = {New:'status-new','In Progress':'status-progress',Completed:'status-done'}[status]||'status-new';
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><span class="logid-badge">#${logCounter}</span></td>
+      <td><span class="vehicle-name">${esc(vehicle)}</span></td>
+      <td class="issue-text">${esc(issue)}</td>
+      <td class="date-text">${dateDisplay}</td>
+      <td class="cost-text">${costDisplay}</td>
+      <td><span class="status-badge ${cls}">${status}</span></td>
+      <td><div class="actions">
+        <button class="action-btn" title="View">👁</button>
+        <button class="action-btn" title="Edit">✏️</button>
+        <button class="action-btn del" title="Delete" onclick="deleteRow(this)">✕</button>
+      </div></td>`;
+    document.getElementById('serviceTable').appendChild(row);
+
+    stats.total++;
+    if(status==='New') stats.new++;
+    if(status==='In Progress') stats.progress++;
+    if(status==='Completed') stats.done++;
+    updateStats();
+    closeModal();
+    showToast();
+    ['f-vehicle','f-issue','f-date','f-cost','f-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-status').value='New';
+  }
+
+  /* ── delete ── */
+  function deleteRow(btn){
+    if(!confirm('Remove this service log?')) return;
+    const row = btn.closest('tr');
+    const cls = row.querySelector('.status-badge').className;
+    stats.total = Math.max(0,stats.total-1);
+    if(cls.includes('status-new'))      stats.new      = Math.max(0,stats.new-1);
+    if(cls.includes('status-progress')) stats.progress = Math.max(0,stats.progress-1);
+    if(cls.includes('status-done'))     stats.done     = Math.max(0,stats.done-1);
+    updateStats();
+    row.style.transition='opacity .3s,transform .3s';
+    row.style.opacity='0'; row.style.transform='translateX(20px)';
+    setTimeout(()=>row.remove(),300);
+  }
+
+  /* ── helpers ── */
+  function updateStats(){
+    document.getElementById('stat-total').textContent    = stats.total;
+    document.getElementById('stat-new').textContent      = stats.new;
+    document.getElementById('stat-progress').textContent = stats.progress;
+    document.getElementById('stat-done').textContent     = stats.done;
+  }
+  function showToast(){
+    const t=document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),3000);
+  }
+  function filterTable(val){
+    document.querySelectorAll('#serviceTable tr').forEach(r=>{
+      r.style.display = r.textContent.toLowerCase().includes(val.toLowerCase()) ? '' : 'none';
+    });
+  }
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

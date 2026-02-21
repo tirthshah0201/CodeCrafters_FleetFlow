@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Flow – Vehicle Registry</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ── TOP NAV ───────────────────────────────────────────── -->
+<nav class="topnav">
+  <a class="logo" href="#">
+    <div class="logo-icon">🚛</div>
+    Fleet Flow
+  </a>
+  <div class="nav-links"></div>
+  <div class="nav-actions"></div>
+</nav>
+
+<div class="main">
+
+  <!-- ── MAIN CONTENT ─────────────────────────────────────── -->
+  <main class="content">
+
+    <!-- Vehicle Table -->
+    <div class="table-wrap">
+      <div style="margin-bottom: 20px;">
+        <button class="btn-new" onclick="openModal()">＋ New Vehicle</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>License Plate <span class="sort-icon">↕</span></th>
+              <th>Model <span class="sort-icon">↕</span></th>
+              <th>Type</th>
+              <th>Max Payload</th>
+              <th>Odometer</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="vehicleTable">
+            <tr>
+              <td class="no">001</td>
+              <td><span class="plate-badge">MH 00 AB 1234</span></td>
+              <td>2017 Tata Ace</td>
+              <td><span class="type-badge">Mini</span></td>
+              <td>5 Ton</td>
+              <td class="odometer-text">79,000 km</td>
+              <td><span class="status-badge status-idle">Idle</span></td>
+            </tr>
+            <tr>
+              <td class="no">002</td>
+              <td><span class="plate-badge">GJ 05 CD 5678</span></td>
+              <td>2021 Mahindra Furio</td>
+              <td><span class="type-badge">Heavy</span></td>
+              <td>16 Ton</td>
+              <td class="odometer-text">34,200 km</td>
+              <td><span class="status-badge status-active">Active</span></td>
+            </tr>
+            <tr>
+              <td class="no">003</td>
+              <td><span class="plate-badge">DL 10 EF 9012</span></td>
+              <td>2019 Eicher Pro 3015</td>
+              <td><span class="type-badge">Medium</span></td>
+              <td>10 Ton</td>
+              <td class="odometer-text">112,450 km</td>
+              <td><span class="status-badge status-maintenance">Maintenance</span></td>
+            </tr>
+            <tr>
+              <td class="no">004</td>
+              <td><span class="plate-badge">KA 01 GH 3456</span></td>
+              <td>2023 Ashok Leyland Boss</td>
+              <td><span class="type-badge">Heavy</span></td>
+              <td>25 Ton</td>
+              <td class="odometer-text">8,900 km</td>
+              <td><span class="status-badge status-idle">Idle</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── MODAL: New Vehicle Registration ────────────────────── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="modal-title-icon">🚛</div>
+        New Vehicle Registration
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label>License Plate *</label>
+        <input class="form-control" id="f-plate" type="text" placeholder="e.g. MH 00 AB 1234">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Model / Make *</label>
+          <input class="form-control" id="f-model" type="text" placeholder="e.g. Tata Ace 2021">
+        </div>
+        <div class="form-group">
+          <label>Vehicle Type *</label>
+          <select class="form-control" id="f-type">
+            <option value="">Select type...</option>
+            <option>Mini</option>
+            <option>Medium</option>
+            <option>Heavy</option>
+            <option>Super Heavy</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Max Payload (tons)</label>
+          <input class="form-control" id="f-payload" type="number" placeholder="e.g. 5">
+        </div>
+        <div class="form-group">
+          <label>Initial Odometer (km)</label>
+          <input class="form-control" id="f-odometer" type="number" placeholder="e.g. 79000">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input class="form-control" id="f-notes" type="text" placeholder="Any additional info...">
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveVehicle()">💾 Save Vehicle</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST NOTIFICATION ─────────────────────────────────── -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✅</span>
+  <div>
+    <div style="font-weight:600;font-size:13px">Vehicle Registered!</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">Added to your fleet successfully.</div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

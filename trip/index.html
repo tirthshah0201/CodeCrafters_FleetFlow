@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetFlow — Trip Dispatcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+/* ── TOKENS ─────────────────────────────────────── */
+:root {
+  --p:     rgb(113,75,103);
+  --pl:    rgb(158,112,143);
+  --pd:    rgb(76,48,68);
+  --pgl:   rgba(113,75,103,.13);
+  --pgm:   rgba(113,75,103,.26);
+
+  --bg:    #0c0e17;
+  --bg2:   #10121d;
+  --s:     #161928;
+  --s2:    #1c2033;
+  --s3:    #232740;
+  --bd:    rgba(255,255,255,.06);
+  --bd2:   rgba(255,255,255,.11);
+  --tx:    #eceff8;
+  --tx2:   #848aa4;
+  --tx3:   #383d56;
+
+  --green:  #27d98a; --gbg: rgba(39,217,138,.1);  --gbd: rgba(39,217,138,.25);
+  --orange: #ff8c42; --obg: rgba(255,140,66,.1);  --obd: rgba(255,140,66,.25);
+  --blue:   #4a9ff5; --bbg: rgba(74,159,245,.1);  --bbd: rgba(74,159,245,.25);
+  --red:    #ff4d6d; --rbg: rgba(255,77,109,.1);  --rbd: rgba(255,77,109,.25);
+  --yellow: #f5c542; --ybg: rgba(245,197,66,.1);  --ybd: rgba(245,197,66,.25);
+
+  --r: 14px; --rs: 9px; --rxs: 6px;
+  --fd: 'Syne',sans-serif;
+  --f:  'Manrope',sans-serif;
+  --m:  'JetBrains Mono',monospace;
+  --e:  all .2s cubic-bezier(.4,0,.2,1);
+  --sh: 0 8px 40px rgba(0,0,0,.45);
+}
+[data-theme="light"] {
+  --bg:#f0f2f9; --bg2:#fff; --s:#fff; --s2:#f4f5fb; --s3:#e8eaf5;
+  --bd:rgba(0,0,0,.06); --bd2:rgba(0,0,0,.11);
+  --tx:#12141e; --tx2:#555a76; --tx3:#adb2cc;
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:14px;}
+body{font-family:var(--f);background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;}
+button{font-family:var(--f);cursor:pointer;border:none;outline:none;}
+input,select,textarea{font-family:var(--f);outline:none;color:var(--tx);}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:99px;}
+
+/* ── LAYOUT ──────────────────────────────────────── */
+.layout{display:flex;height:100vh;overflow:hidden;}
+
+/* ── SIDEBAR ─────────────────────────────────────── */
+.sidebar{
+  width:58px;flex-shrink:0;
+  background:var(--bg2);
+  border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;align-items:center;
+  padding:16px 0;gap:6px;
+  transition:width .25s ease;
+  z-index:50;position:relative;
+}
+.sidebar.wide{width:210px;align-items:stretch;padding:16px 0;}
+.brand{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--pd),var(--p));
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:17px;
+  box-shadow:0 4px 14px rgba(113,75,103,.4);
+  margin-bottom:8px;
+}
+.sidebar.wide .brand{margin:0 16px 8px;}
+
+.sbi{
+  width:38px;height:38px;border-radius:var(--rs);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;cursor:pointer;transition:var(--e);
+  color:var(--tx2);flex-shrink:0;
+  position:relative;
+}
+.sidebar.wide .sbi{width:auto;margin:0 8px;padding:9px 10px;border-radius:var(--rs);gap:10px;justify-content:flex-start;}
+.sbi:hover{background:var(--pgl);color:var(--pl);}
+.sbi.active{background:var(--pgl);color:var(--pl);}
+.sbi .sbi-lbl{font-size:12px;font-weight:600;display:none;white-space:nowrap;}
+.sidebar.wide .sbi .sbi-lbl{display:block;}
+.sbi-tip{
+  position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
+  background:var(--s3);color:var(--tx);
+  font-size:11px;font-weight:600;padding:4px 9px;border-radius:6px;
+  white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;
+  box-shadow:var(--sh);
+}
+.sbi:hover .sbi-tip{opacity:1;}
+.sidebar.wide .sbi-tip{display:none;}
+
+.sb-sep{width:30px;height:1px;background:var(--bd);margin:6px 0;}
+.sidebar.wide .sb-sep{width:auto;margin:6px 16px;}
+
+.sb-expand{
+  margin-top:auto;width:38px;height:38px;border-radius:var(--rs);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:var(--tx2);cursor:pointer;transition:var(--e);
+}
+.sb-expand:hover{background:var(--s2);color:var(--tx);}
+.sidebar.wide .sb-expand{margin:auto 8px 0;width:auto;padding:9px 10px;justify-content:flex-start;gap:10px;font-size:12px;font-weight:600;}
+
+/* ── MAIN ────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── TOPBAR ──────────────────────────────────────── */
+.topbar{
+  height:58px;flex-shrink:0;
+  background:var(--bg2);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:14px;padding:0 24px;
+}
+.tb-title{
+  font-family:var(--fd);font-size:19px;font-weight:700;
+  color:var(--tx);letter-spacing:-.3px;
+}
+.tb-badge{
+  background:var(--obg);border:1px solid var(--obd);color:var(--orange);
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;
+}
+.tb-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.tb-search{
+  display:flex;align-items:center;gap:7px;
+  background:var(--s);border:1px solid var(--bd2);
+  border-radius:var(--rs);padding:7px 12px;
+  min-width:200px;
+}
+.tb-search input{background:none;border:none;font-size:12px;color:var(--tx);width:100%;}
+.tb-search input::placeholder{color:var(--tx3);}
+.tb-search:focus-within{border-color:var(--p);}
+
+.notif{
+  position:relative;width:36px;height:36px;border-radius:var(--rs);
+  background:var(--s);border:1px solid var(--bd2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;cursor:pointer;transition:var(--e);
+}
+.notif:hover{border-color:var(--p);}
+.notif-dot{
+  position:absolute;top:-3px;right:-3px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--red);border:2px solid var(--bg2);
+}
+.role-tag{
+  background:var(--pgl);border:1px solid var(--pgm);color:var(--pl);
+  font-size:11px;font-weight:700;padding:5px 12px;border-radius:99px;
+}
+.btn-new{
+  background:linear-gradient(135deg,var(--pd),var(--p));color:#fff;
+  padding:8px 18px;border-radius:var(--rs);
+  font-size:13px;font-weight:700;
+  box-shadow:0 4px 16px rgba(113,75,103,.38);transition:var(--e);
+}
+.btn-new:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(113,75,103,.52);}
+
+/* ── CONTENT ─────────────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:22px 24px 40px;display:flex;flex-direction:column;gap:18px;}
+.content::-webkit-scrollbar-thumb{background:var(--s3);}
+
+/* ── KPI STRIP ───────────────────────────────────── */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi{
+  background:var(--s);border:1px solid var(--bd);border-radius:var(--r);
+  padding:14px 16px;position:relative;overflow:hidden;
+  transition:var(--e);animation:up .4s ease both;
+  cursor:default;
+}
+.kpi::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--kc,var(--p));transform:scaleX(0);transform-origin:left;
+  transition:transform .3s ease;
+}
+.kpi:hover{transform:translateY(-3px);box-shadow:var(--sh);border-color:var(--bd2);}
+.kpi:hover::after{transform:scaleX(1);}
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.kpi-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.kpi-dt{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;font-family:var(--m);}
+.kpi-dt.g{background:var(--gbg);color:var(--green);}
+.kpi-dt.o{background:var(--obg);color:var(--orange);}
+.kpi-dt.r{background:var(--rbg);color:var(--red);}
+.kpi-dt.b{background:var(--bbg);color:var(--blue);}
+.kpi-v{font-size:28px;font-weight:700;font-family:var(--m);letter-spacing:-1.5px;line-height:1;margin-bottom:3px;}
+.kpi-l{font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:3px;}
+.kpi-bar{height:3px;background:var(--bd);border-radius:99px;overflow:hidden;margin-top:8px;}
+.kpi-fill{height:100%;border-radius:99px;animation:bar 1s ease .3s both;}
+@keyframes bar{from{width:0%!important;}}
+
+/* ── MAIN GRID ───────────────────────────────────── */
+.dispatch-body{display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:start;}
+
+/* ── PANEL ───────────────────────────────────────── */
+.panel{
+  background:var(--s);border:1px solid var(--bd);border-radius:var(--r);
+  overflow:hidden;animation:up .4s ease both;
+}
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 18px;border-bottom:1px solid var(--bd);
+  background:var(--bg2);
+  flex-wrap:wrap;gap:8px;
+}
+.ph-left{display:flex;align-items:center;gap:8px;}
+.ph-title{font-family:var(--fd);font-size:13px;font-weight:700;}
+.ph-count{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;
+  background:var(--obg);color:var(--orange);border:1px solid var(--obd);
+}
+.ph-actions{display:flex;gap:7px;}
+
+/* ── FILTER ROW ──────────────────────────────────── */
+.filter-row{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 16px;border-bottom:1px solid var(--bd);
+  background:var(--s2);
+}
+.fr-inp{
+  display:flex;align-items:center;gap:6px;
+  background:var(--s);border:1px solid var(--bd2);
+  border-radius:var(--rs);padding:6px 10px;flex:1;min-width:140px;
+}
+.fr-inp input{background:none;border:none;font-size:12px;color:var(--tx);width:100%;}
+.fr-inp input::placeholder{color:var(--tx3);}
+.fr-sel{
+  padding:6px 24px 6px 9px;
+  background:var(--s);border:1px solid var(--bd2);border-radius:var(--rs);
+  font-size:11px;font-weight:600;color:var(--tx2);cursor:pointer;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M1 1l3.5 3.5L8 1' stroke='%23848aa4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center;
+  transition:var(--e);
+}
+.fr-sel:focus{border-color:var(--p);}
+.chip{
+  padding:5px 11px;border-radius:99px;font-size:11px;font-weight:600;
+  border:1px solid var(--bd2);background:var(--s);color:var(--tx2);
+  cursor:pointer;transition:var(--e);white-space:nowrap;user-select:none;
+}
+.chip:hover{border-color:var(--p);color:var(--pl);}
+.chip.on{background:var(--pgl);border-color:var(--p);color:var(--pl);}
+
+/* ── QUEUE LIST ──────────────────────────────────── */
+.queue-list{max-height:540px;overflow-y:auto;padding:10px;}
+.queue-list::-webkit-scrollbar-thumb{background:var(--s3);}
+
+.q-item{
+  background:var(--s2);border:1px solid var(--bd);border-radius:var(--rs);
+  padding:12px 14px;margin-bottom:8px;
+  display:flex;align-items:center;gap:12px;
+  transition:var(--e);cursor:pointer;
+  position:relative;overflow:hidden;
+}
+.q-item::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--qi-ac,var(--p));
+  border-radius:0 3px 3px 0;
+}
+.q-item:hover{border-color:var(--pgm);background:var(--s3);}
+.q-item.selected{border-color:var(--p);box-shadow:0 0 0 2px var(--pgl);}
+
+.q-icon{
+  width:36px;height:36px;border-radius:9px;flex-shrink:0;
+  background:var(--s);display:flex;align-items:center;justify-content:center;
+  font-size:18px;border:1px solid var(--bd2);
+}
+.q-info{flex:1;min-width:0;}
+.q-id{font-family:var(--m);font-size:11px;font-weight:500;color:var(--pl);margin-bottom:2px;}
+.q-route{font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.q-meta{font-size:11px;color:var(--tx2);margin-top:3px;}
+.q-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;}
+
+.priority-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;}
+.p-normal{background:var(--s3);color:var(--tx2);}
+.p-high{background:var(--obg);color:var(--orange);border:1px solid var(--obd);}
+.p-urgent{background:var(--rbg);color:var(--red);border:1px solid var(--rbd);animation:flash 1s infinite;}
+@keyframes flash{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+.sbadge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700;
+}
+.sbadge::before{content:'';width:5px;height:5px;border-radius:50%;}
+.s-scheduled::before{background:var(--yellow);}
+.s-scheduled{background:var(--ybg);color:var(--yellow);border:1px solid var(--ybd);}
+.s-dispatched::before{background:var(--blue);animation:pulse 1.5s infinite;}
+.s-dispatched{background:var(--bbg);color:var(--blue);border:1px solid var(--bbd);}
+.s-transit::before{background:var(--orange);animation:pulse 1.2s infinite;}
+.s-transit{background:var(--obg);color:var(--orange);border:1px solid var(--obd);}
+.s-delivered::before{background:var(--green);}
+.s-delivered{background:var(--gbg);color:var(--green);border:1px solid var(--gbd);}
+.s-delayed::before{background:var(--red);animation:pulse .8s infinite;}
+.s-delayed{background:var(--rbg);color:var(--red);border:1px solid var(--rbd);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.dispatch-btn{
+  background:var(--p);color:#fff;
+  padding:5px 13px;border-radius:var(--rxs);
+  font-size:11px;font-weight:700;transition:var(--e);white-space:nowrap;
+}
+.dispatch-btn:hover{background:var(--pl);transform:scale(1.04);}
+.dispatch-btn:disabled{background:var(--s3);color:var(--tx3);cursor:not-allowed;transform:none;}
+
+/* ── RIGHT PANEL ─────────────────────────────────── */
+.right-col{display:flex;flex-direction:column;gap:16px;}
+
+/* Trip detail card */
+.detail-card{
+  background:var(--s);border:1px solid var(--bd);border-radius:var(--r);
+  overflow:hidden;animation:up .4s ease .08s both;
+  transition:var(--e);
+}
+.detail-empty{
+  padding:60px 24px;text-align:center;
+}
+.de-ico{font-size:44px;margin-bottom:14px;}
+.de-title{font-size:15px;font-weight:700;color:var(--tx2);margin-bottom:6px;}
+.de-sub{font-size:12px;color:var(--tx3);}
+
+/* lifecycle */
+.lifecycle{
+  display:flex;align-items:center;padding:20px 24px;
+  border-bottom:1px solid var(--bd);
+  background:linear-gradient(135deg,rgba(113,75,103,.06),transparent);
+}
+.lc-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;position:relative;}
+.lc-step:not(:last-child)::after{
+  content:'';position:absolute;top:15px;
+  left:calc(50% + 15px);right:calc(-50% + 15px);
+  height:2px;background:var(--bd2);
+}
+.lc-step.done:not(:last-child)::after{background:var(--p);}
+.lc-dot{
+  width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;border:2px solid var(--bd2);background:var(--s2);
+  position:relative;z-index:1;transition:var(--e);
+}
+.lc-step.done .lc-dot{background:var(--p);border-color:var(--p);color:#fff;}
+.lc-step.active .lc-dot{
+  background:var(--pd);border-color:var(--p);
+  box-shadow:0 0 0 5px var(--pgl);
+  animation:pulse 1.8s infinite;
+}
+.lc-lbl{font-size:9px;font-weight:700;color:var(--tx3);text-align:center;letter-spacing:.5px;text-transform:uppercase;}
+.lc-step.done .lc-lbl,.lc-step.active .lc-lbl{color:var(--pl);}
+
+/* detail body */
+.detail-body{padding:18px 24px;}
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.d-item{}
+.d-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);margin-bottom:3px;}
+.d-val{font-size:13px;font-weight:500;color:var(--tx);}
+.d-val.mono{font-family:var(--m);}
+
+/* cargo utilization bar */
+.util-bar{height:6px;background:var(--bd);border-radius:99px;overflow:hidden;margin-top:6px;}
+.util-fill{height:100%;border-radius:99px;transition:width 1s ease;}
+
+.detail-actions{
+  display:flex;gap:8px;padding:14px 24px;
+  border-top:1px solid var(--bd);flex-wrap:wrap;
+}
+.da-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--rs);
+  font-size:12px;font-weight:600;transition:var(--e);
+}
+.da-advance{
+  background:linear-gradient(135deg,var(--pd),var(--p));color:#fff;
+  box-shadow:0 3px 12px rgba(113,75,103,.35);
+}
+.da-advance:hover{transform:translateY(-1px);box-shadow:0 5px 18px rgba(113,75,103,.5);}
+.da-sec{background:var(--s2);border:1px solid var(--bd2);color:var(--tx2);}
+.da-sec:hover{border-color:var(--p);color:var(--pl);}
+.da-danger{background:var(--rbg);border:1px solid var(--rbd);color:var(--red);margin-left:auto;}
+.da-danger:hover{background:var(--red);color:#fff;}
+
+/* ── ACTIVE TRIPS PANEL ──────────────────────────── */
+.active-panel{background:var(--s);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;animation:up .4s ease .12s both;}
+.at-list{padding:10px;}
+.at-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px;border-radius:var(--rs);
+  background:var(--s2);border:1px solid var(--bd);
+  border-left:3px solid var(--orange);
+  margin-bottom:8px;transition:var(--e);
+}
+.at-item:hover{border-color:var(--obd);background:var(--s3);}
+.at-item:last-child{margin-bottom:0;}
+.at-ico{font-size:20px;}
+.at-info{flex:1;}
+.at-id{font-family:var(--m);font-size:11px;color:var(--orange);font-weight:500;margin-bottom:2px;}
+.at-route{font-size:13px;font-weight:700;color:var(--tx);}
+.at-meta{font-size:11px;color:var(--tx2);margin-top:2px;}
+.at-right{text-align:right;}
+.at-pct{font-family:var(--m);font-size:18px;font-weight:700;color:var(--orange);}
+.prog-wrap{width:80px;height:4px;background:var(--bd);border-radius:99px;overflow:hidden;margin-top:4px;}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--p),var(--orange));}
+
+/* ── NEW TRIP MODAL ──────────────────────────────── */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);
+  backdrop-filter:blur(5px);z-index:200;display:none;
+}
+.overlay.show{display:block;}
+.modal{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:min(680px,95vw);
+  background:var(--bg2);
+  border:1px solid var(--bd2);
+  border-radius:18px;
+  z-index:201;
+  max-height:90vh;overflow-y:auto;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);
+  display:none;
+}
+.modal.show{display:block;animation:modalIn .32s cubic-bezier(.34,1.56,.64,1);}
+@keyframes modalIn{from{opacity:0;transform:translate(-50%,-54%) scale(.94);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+
+.modal-hd{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  padding:20px 24px 16px;border-bottom:1px solid var(--bd);
+  position:sticky;top:0;background:var(--bg2);z-index:1;
+}
+.mh-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--pl);margin-bottom:4px;}
+.mh-title{font-family:var(--fd);font-size:20px;font-weight:700;}
+.mh-close{
+  width:30px;height:30px;border-radius:var(--rs);
+  background:var(--s2);border:1px solid var(--bd2);
+  color:var(--tx2);font-size:13px;
+  display:flex;align-items:center;justify-content:center;
+  transition:var(--e);flex-shrink:0;
+}
+.mh-close:hover{background:var(--rbg);color:var(--red);border-color:var(--rbd);}
+
+.modal-body{padding:20px 24px 24px;}
+.frow{display:flex;gap:14px;}
+.frow .ff{flex:1;}
+.ff{margin-bottom:13px;}
+.ff label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);margin-bottom:5px;}
+.req{color:var(--red);}
+.iw{position:relative;}
+.iico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;z-index:1;}
+.iw input,.iw select,.iw textarea{
+  width:100%;padding:9px 11px 9px 36px;
+  background:var(--s2);border:1.5px solid var(--bd2);border-radius:var(--rs);
+  font-size:13px;color:var(--tx);transition:var(--e);
+}
+.iw input:focus,.iw select:focus,.iw textarea:focus{
+  border-color:var(--p);box-shadow:0 0 0 3px var(--pgl);background:var(--s);
+}
+.iw select{appearance:none;cursor:pointer;}
+.iw textarea{resize:vertical;padding-top:11px;}
+.iw.err input,.iw.err select{border-color:var(--red);}
+.ferr{font-size:11px;color:var(--red);margin-top:4px;font-weight:600;display:none;}
+.ferr.show{display:block;}
+.fhint{font-size:11px;color:var(--tx2);margin-top:4px;font-style:italic;}
+
+/* capacity alert */
+.cap-alert{
+  display:flex;align-items:flex-start;gap:12px;
+  background:var(--rbg);border:1px solid var(--rbd);
+  border-radius:var(--rs);padding:12px 14px;margin-bottom:13px;
+  animation:up .3s ease;
+}
+.ca-ico{font-size:20px;flex-shrink:0;}
+.ca-title{font-size:13px;font-weight:700;color:var(--red);margin-bottom:2px;}
+.ca-msg{font-size:12px;color:var(--tx2);}
+
+/* fuel panel */
+.fuel-panel{
+  background:linear-gradient(135deg,rgba(113,75,103,.1),rgba(76,48,68,.05));
+  border:1px solid var(--pgm);border-radius:var(--rs);padding:14px;margin-bottom:13px;
+  animation:up .3s ease;
+}
+.fp-title{font-size:11px;font-weight:700;color:var(--pl);margin-bottom:10px;}
+.fp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.fp-item{text-align:center;}
+.fp-val{font-size:18px;font-weight:700;font-family:var(--m);color:var(--pl);letter-spacing:-1px;}
+.fp-lbl{font-size:10px;color:var(--tx3);font-weight:600;margin-top:2px;}
+
+.modal-foot{
+  display:flex;justify-content:flex-end;gap:8px;
+  padding-top:14px;border-top:1px solid var(--bd);margin-top:4px;
+}
+.btn-cancel{
+  padding:9px 20px;border-radius:var(--rs);background:var(--s2);
+  border:1px solid var(--bd2);color:var(--tx2);font-size:13px;font-weight:600;
+  transition:var(--e);
+}
+.btn-cancel:hover{color:var(--tx);border-color:var(--bd2);}
+.btn-submit{
+  padding:9px 22px;border-radius:var(--rs);
+  background:linear-gradient(135deg,var(--pd),var(--p));
+  color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;gap:7px;
+  box-shadow:0 4px 14px rgba(113,75,103,.36);transition:var(--e);
+}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(113,75,103,.5);}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* ── ICON BUTTONS ────────────────────────────────── */
+.ibtn{
+  background:var(--s2);border:1px solid var(--bd2);color:var(--tx2);
+  padding:6px 12px;border-radius:var(--rs);font-size:11px;font-weight:600;
+  transition:var(--e);
+}
+.ibtn:hover{border-color:var(--pgm);color:var(--pl);}
+
+/* ── THEME TOGGLE ────────────────────────────────── */
+.theme-btn{
+  background:var(--s2);border:1px solid var(--bd2);color:var(--tx2);
+  width:36px;height:36px;border-radius:var(--rs);font-size:15px;
+  display:flex;align-items:center;justify-content:center;transition:var(--e);
+}
+.theme-btn:hover{border-color:var(--p);color:var(--pl);}
+
+/* ── TOAST ───────────────────────────────────────── */
+#toasts{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:8px;z-index:9999;}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 15px;border-radius:var(--rs);min-width:270px;max-width:370px;
+  background:var(--s);border:1px solid var(--bd2);box-shadow:var(--sh);
+  animation:toastIn .35s cubic-bezier(.34,1.56,.64,1);cursor:pointer;font-size:12px;
+}
+.toast.out{animation:toastOut .3s ease forwards;}
+@keyframes toastIn{from{opacity:0;transform:translateX(28px) scale(.9);}to{opacity:1;transform:translateX(0) scale(1);}}
+@keyframes toastOut{to{opacity:0;transform:translateX(28px);}}
+.toast.success{border-left:3px solid var(--green);}
+.toast.error  {border-left:3px solid var(--red);}
+.toast.info   {border-left:3px solid var(--blue);}
+.toast.warn   {border-left:3px solid var(--yellow);}
+.toast-msg{flex:1;color:var(--tx);}
+.toast-x{color:var(--tx3);font-size:11px;}
+
+/* ── EMPTY STATE ─────────────────────────────────── */
+.empty{text-align:center;padding:36px 20px;}
+.empty .ei{font-size:36px;margin-bottom:10px;}
+.empty .et{font-size:14px;font-weight:600;color:var(--tx2);margin-bottom:4px;}
+.empty .es{font-size:12px;color:var(--tx3);}
+
+/* ── ANIMATIONS ──────────────────────────────────── */
+@keyframes up{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .7s linear infinite;}
+
+/* ── RESPONSIVE ──────────────────────────────────── */
+@media(max-width:1100px){.dispatch-body{grid-template-columns:1fr;}.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:700px){
+  .sidebar{position:fixed;height:100vh;transform:translateX(-100%);transition:transform .25s ease;}
+  .sidebar.mob-open{transform:translateX(0);box-shadow:var(--sh);}
+  .kpi-strip{grid-template-columns:1fr 1fr;}
+  .frow{flex-direction:column;}
+  .fp-grid{grid-template-columns:1fr 1fr;}
+  .d-grid{grid-template-columns:1fr;}
+  .topbar{padding:0 14px;}
+  .tb-search{display:none;}
+  .content{padding:14px;}
+}
+@media(max-width:480px){.kpi-strip{grid-template-columns:1fr 1fr;}}
+
+</style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
+
+<!-- ══ NEW TRIP MODAL ══════════════════════════════ -->
+<div class="modal" id="tripModal">
+  <div class="modal-hd">
+    <div>
+      <div class="mh-tag">Smart Trip Booking</div>
+      <div class="mh-title">Create New Trip</div>
+    </div>
+    <button class="mh-close" onclick="closeModal()">✕</button>
+  </div>
+  <div class="modal-body">
+    <form id="tripForm" onsubmit="submitTrip(event)" novalidate>
+
+      <div class="frow">
+        <div class="ff">
+          <label>Origin City <span class="req">*</span></label>
+          <div class="iw">
+            <span class="iico">📍</span>
+            <input type="text" id="fOrigin" placeholder="e.g. Ahmedabad" oninput="computeFuel()">
+          </div>
+          <div class="ferr" id="fOriginErr"></div>
+        </div>
+        <div class="ff">
+          <label>Destination <span class="req">*</span></label>
+          <div class="iw">
+            <span class="iico">🏁</span>
+            <input type="text" id="fDest" placeholder="e.g. Mumbai" oninput="computeFuel()">
+          </div>
+          <div class="ferr" id="fDestErr"></div>
+        </div>
+      </div>
+
+      <div class="frow">
+        <div class="ff">
+          <label>Vehicle <span class="req">*</span></label>
+          <div class="iw" id="fVehicleWrap">
+            <span class="iico">🚛</span>
+            <select id="fVehicle" onchange="onVehicleChange()">
+              <option value="">— Select available vehicle —</option>
+            </select>
+          </div>
+          <div class="ferr" id="fVehicleErr"></div>
+          <div class="fhint" id="vCapHint"></div>
+        </div>
+        <div class="ff">
+          <label>Driver <span class="req">*</span></label>
+          <div class="iw">
+            <span class="iico">👤</span>
+            <select id="fDriver">
+              <option value="">— Select available driver —</option>
+            </select>
+          </div>
+          <div class="ferr" id="fDriverErr"></div>
+        </div>
+      </div>
+
+      <div class="frow">
+        <div class="ff">
+          <label>Cargo Weight (kg) <span class="req">*</span></label>
+          <div class="iw">
+            <span class="iico">⚖️</span>
+            <input type="number" id="fCargo" placeholder="e.g. 8000" min="1" oninput="validateCap();computeFuel()">
+          </div>
+          <div class="ferr" id="fCargoErr"></div>
+        </div>
+        <div class="ff">
+          <label>Cargo Type</label>
+          <div class="iw">
+            <span class="iico">📦</span>
+            <select id="fCargoType">
+              <option>General Goods</option>
+              <option>Electronics</option>
+              <option>Pharmaceuticals</option>
+              <option>Chemicals</option>
+              <option>Food & Perishables</option>
+              <option>Machinery</option>
+              <option>Textiles</option>
+              <option>Auto Parts</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capacity Warning -->
+      <div class="cap-alert" id="capAlert" style="display:none">
+        <div class="ca-ico">⚠️</div>
+        <div>
+          <div class="ca-title">Vehicle Capacity Exceeded</div>
+          <div class="ca-msg" id="capMsg">Cargo weight exceeds vehicle capacity. Please select a suitable vehicle.</div>
+        </div>
+      </div>
+
+      <!-- Fuel Estimate -->
+      <div class="fuel-panel" id="fuelPanel" style="display:none">
+        <div class="fp-title">💰 Estimated Trip Cost</div>
+        <div class="fp-grid">
+          <div class="fp-item"><div class="fp-val" id="feDist">—</div><div class="fp-lbl">Distance km</div></div>
+          <div class="fp-item"><div class="fp-val" id="feFuel">—</div><div class="fp-lbl">Fuel litres</div></div>
+          <div class="fp-item"><div class="fp-val" id="feCost">—</div><div class="fp-lbl">Est. Cost ₹</div></div>
+          <div class="fp-item"><div class="fp-val" id="feTime">—</div><div class="fp-lbl">Duration</div></div>
+        </div>
+      </div>
+
+      <div class="frow">
+        <div class="ff">
+          <label>Schedule Date & Time <span class="req">*</span></label>
+          <div class="iw">
+            <span class="iico">📅</span>
+            <input type="datetime-local" id="fDate">
+          </div>
+          <div class="ferr" id="fDateErr"></div>
+        </div>
+        <div class="ff">
+          <label>Priority</label>
+          <div class="iw">
+            <span class="iico">🎯</span>
+            <select id="fPriority">
+              <option value="Normal">Normal</option>
+              <option value="High">High Priority</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="ff">
+        <label>Notes / Special Instructions</label>
+        <div class="iw">
+          <span class="iico" style="top:14px">📝</span>
+          <textarea id="fNotes" rows="2" placeholder="Hazmat handling, temperature control, delivery contact…"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span>Create Trip</span>
+          <span>→</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ LAYOUT ══════════════════════════════════════ -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">✈</div>
+
+    <div class="sbi active" title="Dispatcher" onclick="toast('Trip Dispatcher','info')">
+      <span>📡</span>
+      <span class="sbi-lbl">Dispatcher</span>
+      <span class="sbi-tip">Trip Dispatcher</span>
+    </div>
+    <div class="sbi" onclick="toast('Dashboard — full app coming','info')">
+      <span>📊</span>
+      <span class="sbi-lbl">Dashboard</span>
+      <span class="sbi-tip">Dashboard</span>
+    </div>
+    <div class="sbi" onclick="toast('Vehicle Registry','info')">
+      <span>🚛</span>
+      <span class="sbi-lbl">Vehicles</span>
+      <span class="sbi-tip">Vehicles</span>
+    </div>
+    <div class="sbi" onclick="toast('Driver Management','info')">
+      <span>👤</span>
+      <span class="sbi-lbl">Drivers</span>
+      <span class="sbi-tip">Drivers</span>
+    </div>
+
+    <div class="sb-sep"></div>
+
+    <div class="sbi" onclick="toast('Live Tracking — GPS integration ready','info')">
+      <span>📍</span>
+      <span class="sbi-lbl">Tracking</span>
+      <span class="sbi-tip">Live Tracking</span>
+    </div>
+    <div class="sbi" onclick="toast('Analytics Dashboard','info')">
+      <span>📈</span>
+      <span class="sbi-lbl">Analytics</span>
+      <span class="sbi-tip">Analytics</span>
+    </div>
+    <div class="sbi" onclick="toast('Compliance Monitor','info')">
+      <span>🛡️</span>
+      <span class="sbi-lbl">Compliance</span>
+      <span class="sbi-tip">Compliance</span>
+    </div>
+
+    <div class="sb-sep"></div>
+
+    <div class="sb-expand" id="sbExpand" onclick="toggleSidebar()">
+      <span>⇥</span>
+      <span class="sbi-lbl">Collapse</span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <button class="theme-btn" onclick="toggleSidebar()" style="display:none" id="mobMenuBtn">☰</button>
+      <div class="tb-title">Trip Dispatcher</div>
+      <div class="tb-badge" id="pendingBadge">0 pending</div>
+
+      <div class="tb-right">
+        <div class="tb-search">
+          <span>🔍</span>
+          <input type="text" placeholder="Search trips…" id="globalQ" oninput="applyFilters()">
+        </div>
+        <button class="theme-btn" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">🌙</button>
+        <div class="notif" onclick="toast('3 alerts: 1 delay, 2 maintenance due','warn')">
+          🔔<div class="notif-dot"></div>
+        </div>
+        <div class="role-tag">👑 Manager</div>
+        <button class="btn-new" onclick="openModal()">＋ New Trip</button>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- KPI STRIP -->
+      <div class="kpi-strip" id="kpiStrip"></div>
+
+      <!-- MAIN BODY -->
+      <div class="dispatch-body">
+
+        <!-- LEFT: Queue -->
+        <div>
+          <div class="panel">
+            <div class="panel-hd">
+              <div class="ph-left">
+                <div class="ph-title">📋 Dispatch Queue</div>
+                <div class="ph-count" id="qCount">0</div>
+              </div>
+              <div class="ph-actions">
+                <button class="ibtn" onclick="exportCSV()">⬇ CSV</button>
+                <button class="ibtn" onclick="openModal()">＋ Add</button>
+              </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-row">
+              <div class="fr-inp">
+                <span style="font-size:12px">🔍</span>
+                <input type="text" id="qSearch" placeholder="Search queue…" oninput="applyFilters()">
+              </div>
+              <select class="fr-sel" id="statusF" onchange="applyFilters()">
+                <option value="">All Status</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Dispatched">Dispatched</option>
+                <option value="In Transit">In Transit</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Delayed">Delayed</option>
+              </select>
+              <select class="fr-sel" id="priorityF" onchange="applyFilters()">
+                <option value="">All Priority</option>
+                <option value="Urgent">Urgent</option>
+                <option value="High">High</option>
+                <option value="Normal">Normal</option>
+              </select>
+            </div>
+
+            <!-- Type chips -->
+            <div class="filter-row" style="gap:6px;padding:8px 14px;">
+              <span style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px">Type:</span>
+              <div class="chip on" data-t="" onclick="pickType(this)">All</div>
+              <div class="chip" data-t="Truck" onclick="pickType(this)">🚛 Truck</div>
+              <div class="chip" data-t="Van" onclick="pickType(this)">🚐 Van</div>
+              <div class="chip" data-t="Bus" onclick="pickType(this)">🚌 Bus</div>
+            </div>
+
+            <div class="queue-list" id="queueList"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Detail + Active -->
+        <div class="right-col">
+
+          <!-- Detail card -->
+          <div class="detail-card" id="detailCard">
+            <div class="panel-hd">
+              <div class="ph-title">Trip Details</div>
+              <div class="ph-actions" id="detailBadgeArea"></div>
+            </div>
+            <div id="detailContent">
+              <div class="detail-empty">
+                <div class="de-ico">📋</div>
+                <div class="de-title">Select a trip from the queue</div>
+                <div class="de-sub">Click any trip card to view full details, track progress, and advance its lifecycle status</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active trips -->
+          <div class="active-panel">
+            <div class="panel-hd">
+              <div class="ph-title">🚀 Active Trips — In Transit</div>
+              <div class="live-badge" style="background:var(--gbg);color:var(--green);border:1px solid var(--gbd);font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;animation:pulse 1.5s infinite;">● LIVE</div>
+            </div>
+            <div class="at-list" id="atList"></div>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+
+const VEHICLES = [
+  {id:'VH-001',name:'TRK-001',type:'Truck',cap:15000,fuel:78,status:'Available',year:2021,plate:'GJ-01-AB-1234'},
+  {id:'VH-002',name:'TRK-047',type:'Truck',cap:12000,fuel:52,status:'On Trip',  year:2020,plate:'GJ-05-CD-5678'},
+  {id:'VH-003',name:'VAN-012',type:'Van',  cap:3000, fuel:91,status:'Available',year:2022,plate:'GJ-07-EF-9012'},
+  {id:'VH-004',name:'BUS-003',type:'Bus',  cap:5000, fuel:34,status:'Maintenance',year:2019,plate:'GJ-03-GH-3456'},
+  {id:'VH-005',name:'TRK-088',type:'Truck',cap:18000,fuel:67,status:'On Trip',  year:2022,plate:'GJ-09-IJ-7890'},
+  {id:'VH-006',name:'VAN-031',type:'Van',  cap:2500, fuel:85,status:'Available',year:2023,plate:'GJ-11-KL-2345'},
+  {id:'VH-007',name:'TRK-055',type:'Truck',cap:20000,fuel:44,status:'Available',year:2021,plate:'GJ-02-MN-6789'},
+  {id:'VH-008',name:'VAN-008',type:'Van',  cap:2800, fuel:60,status:'On Trip',  year:2020,plate:'GJ-06-OP-0123'},
+];
+
+const DRIVERS = [
+  {id:'DR-001',name:'John Doe',    lic:'GJ-LD-12345',rating:4.8,trips:247,status:'Available',exp:7},
+  {id:'DR-002',name:'Maria Chen',  lic:'GJ-LD-23456',rating:4.9,trips:312,status:'On Trip',  exp:9},
+  {id:'DR-003',name:'Raj Patel',   lic:'GJ-LD-34567',rating:4.7,trips:198,status:'Available',exp:5},
+  {id:'DR-004',name:'Luis Torres', lic:'GJ-LD-45678',rating:4.6,trips:156,status:'Available',exp:4},
+  {id:'DR-005',name:'Kim Brown',   lic:'GJ-LD-56789',rating:4.9,trips:389,status:'On Trip',  exp:11},
+  {id:'DR-006',name:'Anita Shah',  lic:'GJ-LD-67890',rating:4.8,trips:223,status:'Available',exp:6},
+  {id:'DR-007',name:'Dev Kumar',   lic:'GJ-LD-78901',rating:4.5,trips:134,status:'Available',exp:3},
+  {id:'DR-008',name:'Sara Mehta',  lic:'GJ-LD-89012',rating:4.7,trips:178,status:'On Trip',  exp:5},
+];
+
+const ROUTES = {
+  'Ahmedabad-Mumbai':    {d:524, t:'8h 30m'},
+  'Ahmedabad-Delhi':     {d:934, t:'14h 20m'},
+  'Surat-Delhi':         {d:1148,t:'17h'},
+  'Surat-Mumbai':        {d:284, t:'4h 30m'},
+  'Vadodara-Pune':       {d:424, t:'7h'},
+  'Rajkot-Jaipur':       {d:841, t:'13h'},
+  'Gandhinagar-Hyderabad':{d:1097,t:'16h'},
+  'Bharuch-Kolkata':     {d:1890,t:'28h'},
+  'Mumbai-Delhi':        {d:1422,t:'21h'},
+  'Anand-Bhopal':        {d:697, t:'11h'},
+};
+
+let TRIPS = [
+  {id:'TRP-001',vid:'VH-002',did:'DR-002',from:'Surat',      to:'Delhi',      kg:11500,type:'Textiles',      status:'In Transit',pri:'High',  date:'2025-02-21T08:00',fuel:30580,note:'Handle with care'},
+  {id:'TRP-002',vid:'VH-005',did:'DR-005',from:'Gandhinagar',to:'Hyderabad',  kg:16200,type:'Machinery',     status:'Dispatched', pri:'Urgent',date:'2025-02-21T10:30',fuel:29190,note:''},
+  {id:'TRP-003',vid:'VH-008',did:'DR-008',from:'Anand',      to:'Bhopal',     kg:2400, type:'Food',          status:'Scheduled',  pri:'Normal',date:'2025-02-22T07:00',fuel:18558,note:'Temperature controlled'},
+  {id:'TRP-004',vid:'VH-001',did:'DR-001',from:'Ahmedabad',  to:'Mumbai',     kg:8900, type:'Electronics',   status:'Scheduled',  pri:'High',  date:'2025-02-22T09:00',fuel:13953,note:''},
+  {id:'TRP-005',vid:'VH-003',did:'DR-003',from:'Vadodara',   to:'Pune',       kg:2700, type:'Pharmaceuticals',status:'Delivered', pri:'Urgent',date:'2025-02-20T06:00',fuel:11278,note:'Medical supplies'},
+  {id:'TRP-006',vid:'VH-006',did:'DR-006',from:'Surat',      to:'Mumbai',     kg:2100, type:'Textiles',      status:'Delivered',  pri:'Normal',date:'2025-02-20T14:00',fuel:7562, note:''},
+  {id:'TRP-007',vid:'VH-007',did:'DR-004',from:'Bharuch',    to:'Kolkata',    kg:17800,type:'Chemicals',     status:'Scheduled',  pri:'High',  date:'2025-02-23T05:30',fuel:50330,note:'Hazmat — certified driver'},
+  {id:'TRP-008',vid:'VH-002',did:'DR-007',from:'Ahmedabad',  to:'Delhi',      kg:10200,type:'General',       status:'Delayed',    pri:'Normal',date:'2025-02-21T06:00',fuel:24866,note:'Traffic delay NH-48'},
+];
+
+let tcnt = 9;
+let activeType = '';
+let selectedId = null;
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+  setDefaultDate();
+  populateForms();
+  applyFilters();
+  renderKPIs();
+  renderActive();
+  startLive();
+  // mobile menu btn
+  if(window.innerWidth <= 700) g('mobMenuBtn').style.display='flex';
+});
+
+// ═══════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════
+
+function toggleTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  g('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+
+// ═══════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════
+
+function toggleSidebar() {
+  const sb = g('sidebar');
+  if (window.innerWidth <= 700) {
+    sb.classList.toggle('mob-open');
+  } else {
+    sb.classList.toggle('wide');
+    const exp = g('sbExpand');
+    exp.querySelector('span:first-child').textContent = sb.classList.contains('wide') ? '⇤' : '⇥';
+  }
+}
+
+// ═══════════════════════════════════════════
+// KPI CARDS
+// ═══════════════════════════════════════════
+
+function renderKPIs() {
+  const total   = TRIPS.length;
+  const sched   = TRIPS.filter(t=>t.status==='Scheduled').length;
+  const active  = TRIPS.filter(t=>t.status==='Dispatched'||t.status==='In Transit').length;
+  const done    = TRIPS.filter(t=>t.status==='Delivered').length;
+  const delayed = TRIPS.filter(t=>t.status==='Delayed').length;
+  const avail   = VEHICLES.filter(v=>v.status==='Available').length;
+
+  // update pending badge
+  g('pendingBadge').textContent = `${sched} pending`;
+
+  const cards = [
+    {ico:'📋',v:total,   l:'Total Trips',   dt:`${sched} queued`,      dc:'b', bar:100, bc:'var(--blue)',   kc:'var(--blue)'},
+    {ico:'🚀',v:active,  l:'Active Now',    dt:`${active} moving`,     dc:'o', bar:Math.round(active/total*100), bc:'var(--orange)', kc:'var(--orange)'},
+    {ico:'✅',v:done,    l:'Delivered',     dt:`${Math.round(done/total*100)}% rate`, dc:'g', bar:Math.round(done/total*100), bc:'var(--green)', kc:'var(--green)'},
+    {ico:'⚠️',v:delayed, l:'Delayed',       dt:delayed>0?'Needs attention':'On time', dc:delayed>0?'r':'g', bar:Math.round(delayed/total*100), bc:'var(--red)', kc:'var(--red)'},
+    {ico:'🚗',v:`${avail}/${VEHICLES.length}`,l:'Free Vehicles',dt:`${VEHICLES.filter(v=>v.status==='Maintenance').length} in service`,dc:'b',bar:Math.round(avail/VEHICLES.length*100),bc:'var(--blue)',kc:'var(--blue)'},
+  ];
+
+  g('kpiStrip').innerHTML = cards.map((c,i)=>`
+    <div class="kpi" style="--kc:${c.kc};animation-delay:${i*.07}s">
+      <div class="kpi-top">
+        <div class="kpi-ico" style="background:${c.kc}1a;border:1px solid ${c.kc}40">${c.ico}</div>
+        <div class="kpi-dt ${c.dc}">${c.dt}</div>
+      </div>
+      <div class="kpi-v" style="color:${c.bc}">${c.v}</div>
+      <div class="kpi-l">${c.l}</div>
+      <div class="kpi-bar"><div class="kpi-fill" style="width:${c.bar}%;background:${c.bc}"></div></div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// QUEUE RENDERING
+// ═══════════════════════════════════════════
+
+const LIFECYCLE = ['Scheduled','Dispatched','In Transit','Delivered'];
+const TYPEICO   = {Truck:'🚛',Van:'🚐',Bus:'🚌'};
+const SCLS      = {'Scheduled':'s-scheduled','Dispatched':'s-dispatched','In Transit':'s-transit','Delivered':'s-delivered','Delayed':'s-delayed'};
+const PCLS      = {'Normal':'p-normal','High':'p-high','Urgent':'p-urgent'};
+const PCOL      = {'Normal':'var(--tx3)','High':'var(--orange)','Urgent':'var(--red)'};
+
+function applyFilters() {
+  const q     = (g('qSearch')?.value || g('globalQ')?.value || '').trim().toLowerCase();
+  const st    = g('statusF').value;
+  const pr    = g('priorityF').value;
+
+  let data = [...TRIPS];
+  if (activeType) {
+    const ids = VEHICLES.filter(v=>v.type===activeType).map(v=>v.id);
+    data = data.filter(t=>ids.includes(t.vid));
+  }
+  if (st) data = data.filter(t=>t.status===st);
+  if (pr) data = data.filter(t=>t.pri===pr);
+  if (q)  data = data.filter(t=>{
+    const v=VEHICLES.find(x=>x.id===t.vid);const d=DRIVERS.find(x=>x.id===t.did);
+    return [t.id,t.from,t.to,t.status,t.type,v?.name,d?.name].some(s=>s?.toLowerCase().includes(q));
+  });
+
+  // update queue count
+  const sched = data.filter(t=>t.status==='Scheduled').length;
+  g('qCount').textContent = sched;
+
+  renderQueue(data);
+}
+
+function renderQueue(data) {
+  const el = g('queueList');
+  if (!data.length) {
+    el.innerHTML=`<div class="empty"><div class="ei">🔍</div><div class="et">No trips found</div><div class="es">Adjust or clear your filters</div></div>`;
+    return;
+  }
+  el.innerHTML = data.map((t,i)=>{
+    const v = VEHICLES.find(x=>x.id===t.vid)||{};
+    const d = DRIVERS.find(x=>x.id===t.did)||{};
+    const canAdv = LIFECYCLE.indexOf(t.status) < LIFECYCLE.length-1 && t.status!=='Delayed';
+    const accentCol = PCOL[t.pri]||'var(--p)';
+    return `
+    <div class="q-item ${selectedId===t.id?'selected':''}" onclick="selectTrip('${t.id}')"
+         style="--qi-ac:${accentCol};animation:up .3s ease ${i*.03}s both">
+      <div class="q-icon">${TYPEICO[v.type]||'🚛'}</div>
+      <div class="q-info">
+        <div class="q-id">${t.id}</div>
+        <div class="q-route">${t.from} → ${t.to}</div>
+        <div class="q-meta">${v.name||'?'} · ${d.name||'?'} · ${fmt(t.kg)} kg · ${t.type}</div>
+      </div>
+      <div class="q-right">
+        <span class="priority-badge ${PCLS[t.pri]}">${t.pri}</span>
+        <span class="sbadge ${SCLS[t.status]}">${t.status}</span>
+        ${canAdv?`<button class="dispatch-btn" onclick="advance('${t.id}',event)">▶ ${nextStatus(t.status)}</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function pickType(el) {
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  activeType = el.dataset.t;
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════
+// TRIP SELECTION + DETAIL
+// ═══════════════════════════════════════════
+
+function selectTrip(id) {
+  selectedId = id;
+  applyFilters(); // re-render to show selected state
+  renderDetail(id);
+}
+
+function renderDetail(id) {
+  const t = TRIPS.find(x=>x.id===id);
+  if (!t) return;
+  const v = VEHICLES.find(x=>x.id===t.vid)||{};
+  const d = DRIVERS.find(x=>x.id===t.did)||{};
+  const lcIdx = LIFECYCLE.indexOf(t.status);
+  const isDelayed = t.status==='Delayed';
+  const utilPct = v.cap ? Math.round(t.kg/v.cap*100) : 0;
+  const utilColor = utilPct>90?'var(--red)':utilPct>70?'var(--orange)':'var(--green)';
+  const dateStr = t.date ? new Date(t.date).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  const canAdv = LIFECYCLE.indexOf(t.status) < LIFECYCLE.length-1 && !isDelayed;
+
+  // badge area
+  g('detailBadgeArea').innerHTML = `
+    <span class="sbadge ${SCLS[t.status]}">${t.status}</span>
+    <span class="priority-badge ${PCLS[t.pri]}">${t.pri}</span>`;
+
+  g('detailContent').innerHTML = `
+    <!-- Lifecycle -->
+    <div class="lifecycle">
+      ${LIFECYCLE.map((s,i)=>`
+        <div class="lc-step ${isDelayed&&i===lcIdx?'active':i<lcIdx?'done':i===lcIdx?'active':''}">
+          <div class="lc-dot">${i<lcIdx?'✓':i===lcIdx?(isDelayed?'⚠':'●'):''}</div>
+          <div class="lc-lbl">${s}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Details -->
+    <div class="detail-body">
+      <div class="d-grid">
+        <div class="d-item">
+          <div class="d-lbl">Origin</div>
+          <div class="d-val">📍 ${t.from}</div>
+        </div>
+        <div class="d-item">
+          <div class="d-lbl">Destination</div>
+          <div class="d-val">🏁 ${t.to}</div>
+        </div>
+        <div class="d-item">
+          <div class="d-lbl">Vehicle</div>
+          <div class="d-val">${TYPEICO[v.type]||'🚛'} ${v.name||t.vid} (${v.type||'—'})</div>
+        </div>
+        <div class="d-item">
+          <div class="d-lbl">Driver</div>
+          <div class="d-val">👤 ${d.name||t.did} · ⭐${d.rating||'—'}</div>
+        </div>
+        <div class="d-item">
+          <div class="d-lbl">Cargo</div>
+          <div class="d-val">${fmt(t.kg)} kg · ${t.type}</div>
+          <div class="util-bar"><div class="util-fill" style="width:${Math.min(utilPct,100)}%;background:${utilColor}"></div></div>
+          <div style="font-size:10px;color:${utilColor};margin-top:3px;font-family:var(--m)">${utilPct}% capacity used</div>
+        </div>
+        <div class="d-item">
+          <div class="d-lbl">Fuel Estimate</div>
+          <div class="d-val mono" style="color:var(--green)">₹${fmt(t.fuel)}</div>
+        </div>
+        <div class="d-item">
+          <div class="d-lbl">Scheduled</div>
+          <div class="d-val mono" style="font-size:12px">📅 ${dateStr}</div>
+        </div>
+        <div class="d-item">
+          <div class="d-lbl">Vehicle Plate</div>
+          <div class="d-val mono">${v.plate||'—'}</div>
+        </div>
+        ${t.note?`<div class="d-item" style="grid-column:1/-1">
+          <div class="d-lbl">Notes</div>
+          <div class="d-val" style="color:var(--tx2)">${t.note}</div>
+        </div>`:''}
+      </div>
+
+      <!-- Actions -->
+      <div class="detail-actions">
+        ${canAdv?`<button class="da-btn da-advance" onclick="advance('${t.id}',event)">▶ Advance to ${nextStatus(t.status)}</button>`:''}
+        <button class="da-btn da-sec" onclick="toast('Edit feature connects to Spring Boot API','info')">✏ Edit</button>
+        <button class="da-btn da-sec" onclick="exportSingle('${t.id}')">⬇ Export</button>
+        ${isDelayed?`<button class="da-btn da-sec" onclick="resolveDelay('${t.id}')" style="color:var(--yellow);border-color:var(--ybd)">🔄 Resolve Delay</button>`:''}
+        <button class="da-btn da-danger" onclick="cancelTrip('${t.id}')">✕ Cancel</button>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════
+// LIFECYCLE
+// ═══════════════════════════════════════════
+
+function nextStatus(s) {
+  const i = LIFECYCLE.indexOf(s);
+  return (i>=0&&i<LIFECYCLE.length-1) ? LIFECYCLE[i+1] : null;
+}
+
+function advance(id, event) {
+  event?.stopPropagation();
+  const t = TRIPS.find(x=>x.id===id);
+  if (!t) return;
+  const ns = nextStatus(t.status);
+  if (!ns) return;
+  t.status = ns;
+  // free vehicle & driver when delivered
+  if (ns==='Delivered') {
+    const v=VEHICLES.find(x=>x.id===t.vid);
+    const d=DRIVERS.find(x=>x.id===t.did);
+    if(v)v.status='Available';
+    if(d)d.status='Available';
+  }
+  applyFilters();
+  renderKPIs();
+  renderActive();
+  if (selectedId===id) renderDetail(id);
+  toast(`${id} → ${ns}`, 'success');
+}
+
+function resolveDelay(id) {
+  const t = TRIPS.find(x=>x.id===id);
+  if (t) { t.status='In Transit'; applyFilters(); renderKPIs(); renderActive(); if(selectedId===id) renderDetail(id); toast(`${id} delay resolved — back In Transit`,'success'); }
+}
+
+function cancelTrip(id) {
+  TRIPS = TRIPS.filter(t=>t.id!==id);
+  const v=VEHICLES.find(x=>x.id===TRIPS.find(t=>t.id===id)?.vid);
+  selectedId=null;
+  g('detailContent').innerHTML=`<div class="detail-empty"><div class="de-ico">📋</div><div class="de-title">Select a trip from the queue</div><div class="de-sub">Click any trip card to view details</div></div>`;
+  g('detailBadgeArea').innerHTML='';
+  applyFilters(); renderKPIs(); renderActive();
+  toast(`Trip ${id} cancelled`,'warn');
+}
+
+// ═══════════════════════════════════════════
+// ACTIVE TRIPS PANEL
+// ═══════════════════════════════════════════
+
+function renderActive() {
+  const active = TRIPS.filter(t=>t.status==='In Transit'||t.status==='Dispatched');
+  const el = g('atList');
+  if (!active.length) {
+    el.innerHTML=`<div class="empty" style="padding:24px"><div class="ei">✅</div><div class="et">No active trips right now</div></div>`;
+    return;
+  }
+  el.innerHTML = active.map(t=>{
+    const v=VEHICLES.find(x=>x.id===t.vid)||{};
+    const d=DRIVERS.find(x=>x.id===t.did)||{};
+    const pct = t.status==='In Transit' ? (t._pct||(t._pct=Math.round(20+Math.random()*65))) : 8;
+    const spd = Math.round(55+Math.random()*45);
+    return `
+    <div class="at-item" onclick="selectTrip('${t.id}')">
+      <div class="at-ico">${TYPEICO[v.type]||'🚛'}</div>
+      <div class="at-info">
+        <div class="at-id">${t.id} · <span class="sbadge ${SCLS[t.status]}" style="font-size:9px">${t.status}</span></div>
+        <div class="at-route">${t.from} → ${t.to}</div>
+        <div class="at-meta">👤 ${d.name||'—'} · ⚡ ${spd} km/h · ${t.type}</div>
+      </div>
+      <div class="at-right">
+        <div class="at-pct">${pct}%</div>
+        <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// NEW TRIP MODAL
+// ═══════════════════════════════════════════
+
+function openModal() {
+  populateForms();
+  g('overlay').classList.add('show');
+  g('tripModal').classList.add('show');
+  g('fuelPanel').style.display='none';
+  g('capAlert').style.display='none';
+}
+
+function closeModal() {
+  g('overlay').classList.remove('show');
+  g('tripModal').classList.remove('show');
+  g('tripForm').reset();
+  clearErrs();
+}
+
+function populateForms() {
+  const vs = VEHICLES.filter(v=>v.status==='Available');
+  const ds = DRIVERS.filter(d=>d.status==='Available');
+  g('fVehicle').innerHTML = `<option value="">— Select available vehicle —</option>` +
+    vs.map(v=>`<option value="${v.id}" data-cap="${v.cap}">${v.name} (${v.type}) · ${fmt(v.cap)}kg cap · ⛽${v.fuel}%</option>`).join('');
+  g('fDriver').innerHTML = `<option value="">— Select available driver —</option>` +
+    ds.map(d=>`<option value="${d.id}">⭐${d.rating} ${d.name} · ${d.exp}yr · ${d.trips} trips</option>`).join('');
+}
+
+function onVehicleChange() {
+  const sel=g('fVehicle'), opt=sel.options[sel.selectedIndex];
+  if (!opt.value){g('vCapHint').textContent='';g('fuelPanel').style.display='none';return;}
+  g('vCapHint').textContent=`✔ Max capacity: ${fmt(opt.getAttribute('data-cap'))} kg`;
+  validateCap(); computeFuel();
+}
+
+function validateCap() {
+  const cargo=parseFloat(g('fCargo').value)||0;
+  const sel=g('fVehicle');const opt=sel.options[sel.selectedIndex];
+  const cap=parseFloat(opt?.getAttribute('data-cap'))||0;
+  if (cargo>0&&cap>0&&cargo>cap) {
+    g('capAlert').style.display='flex';
+    g('capMsg').textContent=`Cargo ${fmt(cargo)} kg exceeds vehicle capacity ${fmt(cap)} kg. Please select a larger vehicle.`;
+    g('fVehicleWrap').classList.add('err');
+  } else {
+    g('capAlert').style.display='none';
+    g('fVehicleWrap').classList.remove('err');
+  }
+}
+
+function computeFuel() {
+  const from=(g('fOrigin').value||'').trim();
+  const to=(g('fDest').value||'').trim();
+  const kg=parseFloat(g('fCargo').value)||0;
+  if(!from||!to||!kg){g('fuelPanel').style.display='none';return;}
+  const key=`${from}-${to}`,rkey=`${to}-${from}`;
+  const r=ROUTES[key]||ROUTES[rkey];
+  let dist,time,litres,cost;
+  if(r){dist=r.d;time=r.t;}
+  else {dist=Math.round(400+Math.random()*900);time=`~${Math.round(dist/80)}h`;}
+  litres=Math.round(dist*0.28*(1+kg/50000));
+  cost=Math.round(litres*95);
+  g('feDist').textContent=fmt(dist);
+  g('feFuel').textContent=fmt(litres);
+  g('feCost').textContent=fmt(cost);
+  g('feTime').textContent=time;
+  g('fuelPanel').style.display='block';
+  return cost;
+}
+
+function setDefaultDate() {
+  const inp=g('fDate'); if(!inp) return;
+  const d=new Date(); d.setHours(d.getHours()+2,0,0,0);
+  inp.value=d.toISOString().slice(0,16);
+  inp.min=new Date().toISOString().slice(0,16);
+}
+
+function submitTrip(e) {
+  e.preventDefault();
+  clearErrs();
+  const from=g('fOrigin').value.trim();
+  const to=g('fDest').value.trim();
+  const vid=g('fVehicle').value;
+  const did=g('fDriver').value;
+  const kg=parseFloat(g('fCargo').value);
+  const date=g('fDate').value;
+  const type=g('fCargoType').value;
+  const pri=g('fPriority').value;
+  const note=g('fNotes').value;
+  let ok=true;
+
+  if(!from)           {err('fOriginErr','Origin city is required');ok=false;}
+  if(!to)             {err('fDestErr','Destination is required');ok=false;}
+  if(from&&to&&from.toLowerCase()===to.toLowerCase()) {err('fDestErr','Origin and destination must differ');ok=false;}
+  if(!vid)            {err('fVehicleErr','Please select a vehicle');ok=false;}
+  if(!did)            {err('fDriverErr','Please select a driver');ok=false;}
+  if(!kg||kg<1)       {err('fCargoErr','Cargo weight must be at least 1 kg');ok=false;}
+  if(!date)           {err('fDateErr','Schedule date is required');ok=false;}
+  if(date&&new Date(date)<new Date()) {err('fDateErr','Date cannot be in the past');ok=false;}
+
+  // capacity
+  const sel=g('fVehicle');const opt=sel.options[sel.selectedIndex];
+  const cap=parseFloat(opt?.getAttribute('data-cap'))||0;
+  if(cap&&kg>cap){err('fCargoErr',`Exceeds vehicle capacity (max ${fmt(cap)} kg)`);ok=false;}
+
+  // double booking
+  const driverBusy=TRIPS.some(t=>t.did===did&&['Scheduled','Dispatched','In Transit'].includes(t.status));
+  if(driverBusy){err('fDriverErr','Driver already has an active trip — double booking prevented');ok=false;}
+  const vehicleBusy=TRIPS.some(t=>t.vid===vid&&['Scheduled','Dispatched','In Transit'].includes(t.status));
+  if(vehicleBusy){err('fVehicleErr','Vehicle already assigned — double booking prevented');ok=false;}
+
+  if(!ok) return;
+
+  const btn=g('submitBtn');
+  btn.innerHTML='<div class="spin"></div><span>Creating…</span>';
+  btn.disabled=true;
+
+  const fc=computeFuel()||Math.round(10000+Math.random()*20000);
+  setTimeout(()=>{
+    const trip={id:`TRP-${String(tcnt++).padStart(3,'0')}`,vid,did,from,to,kg,type,pri,date,fuel:fc,note,status:'Scheduled'};
+    TRIPS.unshift(trip);
+    const v=VEHICLES.find(x=>x.id===vid);if(v)v.status='On Trip';
+    const d=DRIVERS.find(x=>x.id===did);if(d)d.status='On Trip';
+    closeModal();
+    applyFilters();renderKPIs();renderActive();
+    btn.innerHTML='<span>Create Trip</span><span>→</span>';
+    btn.disabled=false;
+    toast(`✅ ${trip.id} created — ${from} → ${to}`,'success');
+  },900);
+}
+
+function err(id,msg){const el=g(id);if(!el)return;el.textContent=msg;el.classList.add('show');}
+function clearErrs(){document.querySelectorAll('.ferr').forEach(e=>{e.textContent='';e.classList.remove('show');});document.querySelectorAll('.iw').forEach(w=>w.classList.remove('err'));}
+
+// ═══════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════
+
+function exportCSV() {
+  const hdr=['Trip ID','Vehicle','Driver','From','To','Kg','Type','Status','Priority','Fuel Est','Date'];
+  const rows=TRIPS.map(t=>{
+    const v=VEHICLES.find(x=>x.id===t.vid);const d=DRIVERS.find(x=>x.id===t.did);
+    return [t.id,v?.name||t.vid,d?.name||t.did,t.from,t.to,t.kg,t.type,t.status,t.pri,t.fuel,t.date].join(',');
+  });
+  const a=document.createElement('a');
+  a.href=`data:text/csv;charset=utf-8,${encodeURIComponent([hdr.join(','),...rows].join('\n'))}`;
+  a.download=`FleetFlow_Trips_${Date.now()}.csv`;a.click();
+  toast('Trips exported as CSV','success');
+}
+
+function exportSingle(id) {
+  const t=TRIPS.find(x=>x.id===id);if(!t)return;
+  toast(`Trip ${id} exported to PDF (demo)`,'success');
+}
+
+// ═══════════════════════════════════════════
+// LIVE SIMULATION
+// ═══════════════════════════════════════════
+
+function startLive() {
+  setInterval(()=>{
+    const active=TRIPS.filter(t=>t.status==='In Transit');
+    if(active.length&&Math.random()>.65){
+      const t=active[Math.floor(Math.random()*active.length)];
+      const v=VEHICLES.find(x=>x.id===t.vid);
+      if(Math.random()>.5) toast(`📍 ${v?.name||t.id} checkpoint — ${Math.round(30+Math.random()*60)}% complete`,'info');
+    }
+    // occasionally update progress %
+    TRIPS.filter(t=>t.status==='In Transit').forEach(t=>{
+      if(t._pct&&t._pct<95) t._pct=Math.min(95,t._pct+Math.round(Math.random()*3));
+    });
+    renderActive();
+  },20000);
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+
+function toast(msg,type='info') {
+  const icons={success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'};
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span>${icons[type]}</span><span class="toast-msg">${msg}</span><span class="toast-x" onclick="this.parentElement.remove()">✕</span>`;
+  g('toasts').appendChild(t);
+  t.addEventListener('click',()=>t.remove());
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),350);},4500);
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+
+function g(id){return document.getElementById(id);}
+function fmt(n){return Number(n).toLocaleString('en-IN');}
+</script>
+</body>
+</html>
