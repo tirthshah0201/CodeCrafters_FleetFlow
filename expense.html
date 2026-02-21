@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Flow – Expense & Fuel Logging</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── variables ── */
+    :root{
+      --odoo-purple:#714B67;--odoo-primary:#017E84;--odoo-accent:#00C5CD;
+      --odoo-gold:#F0A500;--bg-base:#0D0D0D;--bg-surface:#141414;
+      --bg-card:#1A1A1A;--bg-hover:#222;--border:#2A2A2A;--border-bright:#333;
+      --text-primary:#F0F0F0;--text-secondary:#888;--text-muted:#555;
+      --danger:#E74C3C;--success:#27AE60;--warning:#F39C12;--info:#2980B9;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Sora',sans-serif;background:var(--bg-base);color:var(--text-primary);min-height:100vh;overflow-x:hidden}
+
+    /* ── nav ── */
+    .topnav{background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;height:56px;gap:32px;position:sticky;top:0;z-index:100}
+    .logo{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;color:var(--odoo-accent);text-decoration:none}
+    .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .nav-links{display:flex;gap:4px;flex:1}
+    .nav-link{padding:6px 14px;border-radius:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;transition:all .2s;white-space:nowrap;user-select:none}
+    .nav-link:hover{background:var(--bg-hover);color:var(--text-primary)}
+    .nav-link.active{background:rgba(0,197,205,.12);color:var(--odoo-accent)}
+    .nav-actions{display:flex;align-items:center;gap:12px}
+    .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer}
+
+    /* ── layout ── */
+    .main{display:flex;height:calc(100vh - 56px)}
+
+    /* ── sidebar ── */
+    .sidebar{width:220px;background:var(--bg-surface);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;overflow-y:auto}
+    .sidebar-section{padding:8px 16px 4px;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:var(--text-secondary);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+    .sidebar-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+    .sidebar-item.active{background:rgba(0,197,205,.08);color:var(--odoo-accent);border-left-color:var(--odoo-accent)}
+    .sidebar-item .icon{font-size:16px;width:20px;text-align:center}
+
+    /* ── content ── */
+    .content{flex:1;overflow-y:auto;background:var(--bg-base)}
+
+    /* ── page header ── */
+    .page-header{padding:24px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .breadcrumb{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-family:'IBM Plex Mono',monospace}
+    .breadcrumb span{color:var(--odoo-accent)}
+    .page-title{font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-.3px}
+    .page-title small{display:block;font-size:13px;font-weight:300;color:var(--text-secondary);margin-top:2px}
+    .btn-new{display:flex;align-items:center;gap:8px;background:var(--odoo-primary);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap;box-shadow:0 0 20px rgba(1,126,132,.3)}
+    .btn-new:hover{background:var(--odoo-accent);box-shadow:0 0 28px rgba(0,197,205,.4);transform:translateY(-1px)}
+
+    /* ── toolbar ── */
+    .toolbar{padding:16px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .search-wrap{flex:1;min-width:240px;position:relative}
+    .search-input{width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:9px 16px 9px 38px;font-size:13px;color:var(--text-primary);font-family:'Sora',sans-serif;outline:none;transition:border-color .2s}
+    .search-input::placeholder{color:var(--text-muted)}
+    .search-input:focus{border-color:var(--odoo-primary)}
+    .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px}
+    .toolbar-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:9px 14px;border-radius:8px;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .toolbar-btn:hover{border-color:var(--odoo-primary);color:var(--odoo-accent)}
+    .filter-tab-group{display:flex;gap:4px}
+    .filter-tab{background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s}
+    .filter-tab:hover{border-color:var(--odoo-primary);color:var(--odoo-accent)}
+    .filter-tab.active{background:rgba(0,197,205,.12);border-color:var(--odoo-accent);color:var(--odoo-accent)}
+
+    /* ── stats ── */
+    .stats-row{padding:0 28px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+    .stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;transition:border-color .2s}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%}
+    .stat-card.c-total::before{background:var(--odoo-accent)}
+    .stat-card.c-fuel::before{background:var(--odoo-gold)}
+    .stat-card.c-misc::before{background:var(--info)}
+    .stat-card.c-dist::before{background:var(--success)}
+    .stat-card.c-trips::before{background:var(--odoo-purple)}
+    .stat-card:hover{border-color:var(--border-bright)}
+    .stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px}
+    .stat-value{font-size:22px;font-weight:700;line-height:1}
+    .stat-card.c-total .stat-value{color:var(--odoo-accent)}
+    .stat-card.c-fuel  .stat-value{color:var(--odoo-gold)}
+    .stat-card.c-misc  .stat-value{color:#5DADE2}
+    .stat-card.c-dist  .stat-value{color:var(--success)}
+    .stat-card.c-trips .stat-value{color:#C89BC0}
+    .stat-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+    /* ── table ── */
+    .table-wrap{padding:0 28px 28px}
+    .table-container{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    table{width:100%;border-collapse:collapse}
+    thead{background:var(--bg-surface);border-bottom:1px solid var(--border)}
+    th{padding:12px 16px;text-align:left;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;cursor:pointer;white-space:nowrap;user-select:none;transition:color .2s}
+    th:hover{color:var(--odoo-accent)}
+    th .sort-icon{margin-left:4px;opacity:.4}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:var(--bg-hover)}
+    td{padding:14px 16px;font-size:13px;vertical-align:middle}
+
+    .tripid-badge{display:inline-flex;align-items:center;background:rgba(113,75,103,.18);border:1px solid rgba(113,75,103,.35);color:#C89BC0;padding:4px 10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:1px}
+    .driver-cell{display:flex;align-items:center;gap:9px}
+    .driver-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:'IBM Plex Mono',monospace}
+    .driver-name{font-weight:600;color:var(--text-primary);font-size:13px}
+    .dist-text{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-secondary);white-space:nowrap}
+    .fuel-text{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--odoo-gold);white-space:nowrap}
+    .misc-text{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5DADE2;white-space:nowrap}
+
+    .status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+    .status-badge::before{content:'';width:6px;height:6px;border-radius:50%}
+    .s-pending{background:rgba(231,76,60,.12);color:#E57373;border:1px solid rgba(231,76,60,.25)}
+    .s-pending::before{background:#E57373;animation:pulse 1.8s infinite}
+    .s-progress{background:rgba(243,156,18,.12);color:var(--warning);border:1px solid rgba(243,156,18,.25)}
+    .s-progress::before{background:var(--warning);animation:pulse 1.2s infinite}
+    .s-done{background:rgba(39,174,96,.12);color:#5CDB95;border:1px solid rgba(39,174,96,.25)}
+    .s-done::before{background:#5CDB95}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+    .actions{display:flex;align-items:center;gap:6px}
+    .action-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all .2s}
+    .action-btn:hover{border-color:var(--odoo-primary);color:var(--odoo-accent);background:rgba(0,197,205,.08)}
+    .action-btn.del:hover{border-color:var(--danger);color:var(--danger);background:rgba(231,76,60,.08)}
+
+    /* ── empty ── */
+    .empty-row td{text-align:center;padding:48px;color:var(--text-muted);font-size:13px}
+    .empty-icon{font-size:32px;margin-bottom:8px;display:block}
+
+    /* ── pagination ── */
+    .pager{padding:0 28px 8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .pager-info{font-size:12px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+    .pager-btns{display:flex;gap:4px}
+    .pager-btn{min-width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:12px;font-family:'IBM Plex Mono',monospace;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;padding:0 6px}
+    .pager-btn:hover{border-color:var(--odoo-primary);color:var(--odoo-accent)}
+    .pager-btn.active{background:var(--odoo-primary);border-color:var(--odoo-primary);color:#fff}
+    .pager-btn:disabled{opacity:.3;cursor:not-allowed}
+
+    /* ── modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .25s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;width:520px;max-width:95vw;transform:translateY(16px) scale(.97);transition:transform .25s;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+    .modal-overlay.open .modal{transform:translateY(0) scale(1)}
+    .modal-header{padding:20px 24px;background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .modal-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px}
+    .modal-title-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+    .modal-close:hover{border-color:var(--danger);color:var(--danger)}
+    .modal-body{padding:24px;display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-group label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace}
+    .form-control{background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text-primary);font-family:'Sora',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;width:100%}
+    .form-control::placeholder{color:var(--text-muted)}
+    .form-control:focus{border-color:var(--odoo-primary);box-shadow:0 0 0 3px rgba(1,126,132,.12)}
+    .form-control.err{border-color:var(--danger)}
+    select.form-control{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+    .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:10px}
+    .btn-cancel{background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:9px 20px;border-radius:8px;font-size:13px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s}
+    .btn-cancel:hover{border-color:var(--border-bright);color:var(--text-primary)}
+    .btn-save{background:var(--odoo-primary);border:none;color:#fff;padding:9px 24px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .btn-save:hover{background:var(--odoo-accent);box-shadow:0 0 20px rgba(0,197,205,.35)}
+
+    /* ── view drawer ── */
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s}
+    .drawer-overlay.open{opacity:1;pointer-events:all}
+    .drawer{position:fixed;top:0;right:-420px;width:400px;max-width:95vw;height:100vh;background:var(--bg-card);border-left:1px solid var(--border-bright);z-index:901;transition:right .3s cubic-bezier(.25,.46,.45,.94);overflow-y:auto;display:flex;flex-direction:column}
+    .drawer-overlay.open .drawer{right:0}
+    .drawer-header{padding:20px 22px;background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .drawer-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--odoo-accent);font-family:'IBM Plex Mono',monospace}
+    .drawer-body{padding:22px;display:flex;flex-direction:column;gap:18px;flex:1}
+    .drawer-section{font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px}
+    .drawer-field{display:flex;flex-direction:column;gap:4px}
+    .drawer-field-label{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.8px}
+    .drawer-field-value{font-size:13px;color:var(--text-primary)}
+    .drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+    /* ── toast ── */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg-card);border:1px solid var(--success);color:var(--text-primary);padding:14px 20px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 20px rgba(39,174,96,.2);z-index:2000;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+    .toast.show{transform:translateX(0)}
+    .toast.toast-err{border-color:var(--danger);box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 20px rgba(231,76,60,.2)}
+    .toast-icon{font-size:18px}
+
+    /* ── scrollbar ── */
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+  </style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <a class="logo" href="#">
+    <div class="logo-icon">🚛</div>
+    Fleet Flow
+  </a>
+  <div class="nav-links">
+    <div class="nav-link">Dashboard</div>
+    <div class="nav-link">Fleet</div>
+    <div class="nav-link">Trips</div>
+    <div class="nav-link">Drivers</div>
+    <div class="nav-link">Maintenance</div>
+    <div class="nav-link active">Expenses</div>
+    <div class="nav-link">Reports</div>
+  </div>
+  <div class="nav-actions">
+    <div style="font-size:18px;cursor:pointer;color:var(--text-muted)">🔔</div>
+    <div style="font-size:18px;cursor:pointer;color:var(--text-muted)">⚙️</div>
+    <div class="avatar">AD</div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Fleet</div>
+    <div class="sidebar-item"><span class="icon">🚗</span> Vehicles</div>
+    <div class="sidebar-item"><span class="icon">👤</span> Drivers</div>
+    <div class="sidebar-item"><span class="icon">📋</span> Assignments</div>
+    <div class="sidebar-section">Operations</div>
+    <div class="sidebar-item"><span class="icon">🗺️</span> Live Tracking</div>
+    <div class="sidebar-item"><span class="icon">📦</span> Trips</div>
+    <div class="sidebar-item"><span class="icon">🔧</span> Maintenance</div>
+    <div class="sidebar-section">Finance</div>
+    <div class="sidebar-item active"><span class="icon">⛽</span> Expense Logs</div>
+    <div class="sidebar-item"><span class="icon">📅</span> Schedule</div>
+    <div class="sidebar-section">Analytics</div>
+    <div class="sidebar-item"><span class="icon">📊</span> Reports</div>
+    <div class="sidebar-item"><span class="icon">💰</span> Costs</div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">Fleet Flow / Finance / <span>Expense & Fuel Logs</span></div>
+        <h1 class="page-title">
+          Expense &amp; Fuel Logging
+          <small>Track fuel costs, trip expenses &amp; miscellaneous charges per trip</small>
+        </h1>
+      </div>
+      <button class="btn-new" onclick="openModal()">＋ Add an Expense</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" type="text" id="searchInput" placeholder="Search by Trip ID, Driver, Status..." oninput="applyFilters()">
+      </div>
+      <div class="filter-tab-group">
+        <button class="filter-tab active" data-f="All"         onclick="setFilter(this)">All</button>
+        <button class="filter-tab"         data-f="Pending"    onclick="setFilter(this)">Pending</button>
+        <button class="filter-tab"         data-f="In Progress" onclick="setFilter(this)">In Progress</button>
+        <button class="filter-tab"         data-f="Done"       onclick="setFilter(this)">Done</button>
+      </div>
+      <button class="toolbar-btn" onclick="exportCSV()">⬇ Export</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card c-trips">
+        <div class="stat-label">Total Trips</div>
+        <div class="stat-value" id="s-trips">0</div>
+        <div class="stat-sub">expense records</div>
+      </div>
+      <div class="stat-card c-fuel">
+        <div class="stat-label">Fuel Expense</div>
+        <div class="stat-value" id="s-fuel">₹0</div>
+        <div class="stat-sub">total fuel cost</div>
+      </div>
+      <div class="stat-card c-misc">
+        <div class="stat-label">Misc. Expense</div>
+        <div class="stat-value" id="s-misc">₹0</div>
+        <div class="stat-sub">other charges</div>
+      </div>
+      <div class="stat-card c-dist">
+        <div class="stat-label">Total Distance</div>
+        <div class="stat-value" id="s-dist">0</div>
+        <div class="stat-sub">kilometres covered</div>
+      </div>
+      <div class="stat-card c-total">
+        <div class="stat-label">Total Spend</div>
+        <div class="stat-value" id="s-total">₹0</div>
+        <div class="stat-sub">fuel + misc</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('tripId')">Trip ID <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('driver')">Driver <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('distance')">Distance <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('fuelCost')">Fuel Expense <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('miscExpense')">Misc. Expense <span class="sort-icon">↕</span></th>
+              <th onclick="sortBy('status')">Status <span class="sort-icon">↕</span></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="expenseTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pager">
+      <div class="pager-info" id="pagerInfo">Showing 0–0 of 0</div>
+      <div class="pager-btns" id="pagerBtns"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="modal-title-icon">⛽</div>
+        <span id="modalTitleText">New Expense Log</span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Trip ID *</label>
+          <input class="form-control" id="f-tripId" type="text" placeholder="e.g. 325">
+        </div>
+        <div class="form-group">
+          <label>Driver Name *</label>
+          <input class="form-control" id="f-driver" type="text" placeholder="e.g. Ravi Kumar">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Distance (km) *</label>
+          <input class="form-control" id="f-distance" type="number" placeholder="e.g. 1000" min="0">
+        </div>
+        <div class="form-group">
+          <label>Fuel Cost (₹) *</label>
+          <input class="form-control" id="f-fuelCost" type="number" placeholder="e.g. 19000" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Misc. Expense (₹)</label>
+          <input class="form-control" id="f-miscExpense" type="number" placeholder="e.g. 3000" min="0">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select class="form-control" id="f-status">
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input class="form-control" id="f-notes" type="text" placeholder="Any additional details...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveExpense()"><span id="saveLabel">💾 Create Log</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawerOutside(event)">
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">⛽ Expense Detail</div>
+      <button class="modal-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✅</span>
+  <div>
+    <div style="font-weight:600;font-size:13px" id="toastTitle">Done!</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-top:2px" id="toastSub"></div>
+  </div>
+</div>
+
+<script>
+/* ── SEED DATA ── */
+let expenses = [
+  { id:1, tripId:'321', driver:'John Mathew',   distance:1000, fuelCost:19000, miscExpense:3000, status:'Done',       notes:'Long haul, highway route.' },
+  { id:2, tripId:'322', driver:'Priya Singh',   distance:850,  fuelCost:14500, miscExpense:1200, status:'In Progress', notes:'City delivery, toll charges included.' },
+  { id:3, tripId:'323', driver:'Ravi Kumar',    distance:430,  fuelCost:7200,  miscExpense:500,  status:'Pending',    notes:'Short local trip.' },
+  { id:4, tripId:'324', driver:'Sara Thomas',   distance:1200, fuelCost:21000, miscExpense:4000, status:'Done',       notes:'Interstate freight.' },
+  { id:5, tripId:'325', driver:'Alex Fernandez',distance:670,  fuelCost:11000, miscExpense:0,    status:'Pending',    notes:'' },
+  { id:6, tripId:'326', driver:'Meena Iyer',    distance:300,  fuelCost:5200,  miscExpense:800,  status:'Done',       notes:'Maintenance pickup trip.' },
+];
+let nextId = 7;
+let editId = null;
+let currentFilter = 'All';
+let sortKey = '';
+let sortAsc = true;
+let currentPage = 1;
+const PER_PAGE = 8;
+const AVATAR_COLORS = ['#017E84','#714B67','#F0A500','#2980B9','#8E44AD','#27AE60','#D35400'];
+
+/* ── FILTER / SORT / PAGINATE ── */
+function getFiltered(){
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let data = expenses.filter(e=>{
+    const matchFilter = currentFilter === 'All' || e.status === currentFilter;
+    const matchSearch = !q ||
+      e.tripId.toLowerCase().includes(q) ||
+      e.driver.toLowerCase().includes(q) ||
+      e.status.toLowerCase().includes(q) ||
+      e.notes.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+  if(sortKey){
+    data.sort((a,b)=>{
+      let va=a[sortKey], vb=b[sortKey];
+      if(typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();}
+      return (va<vb?-1:va>vb?1:0)*(sortAsc?1:-1);
+    });
+  }
+  return data;
+}
+
+function sortBy(key){
+  if(sortKey===key) sortAsc=!sortAsc; else {sortKey=key;sortAsc=true;}
+  render();
+}
+
+function setFilter(btn){
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.f;
+  currentPage = 1;
+  render();
+}
+
+function applyFilters(){ currentPage=1; render(); }
+
+/* ── RENDER ── */
+function render(){
+  const data   = getFiltered();
+  const pages  = Math.max(1, Math.ceil(data.length/PER_PAGE));
+  if(currentPage>pages) currentPage=pages;
+  const slice  = data.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
+  const tbody  = document.getElementById('expenseTable');
+  tbody.innerHTML='';
+
+  if(slice.length===0){
+    tbody.innerHTML=`<tr class="empty-row"><td colspan="7"><span class="empty-icon">📭</span>No expense records found.</td></tr>`;
+  } else {
+    slice.forEach(e=>{
+      const cls   = {Done:'s-done','In Progress':'s-progress',Pending:'s-pending'}[e.status]||'s-pending';
+      const init  = e.driver.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const color = AVATAR_COLORS[e.id % AVATAR_COLORS.length];
+      const tr    = document.createElement('tr');
+      tr.innerHTML=`
+        <td><span class="tripid-badge">#${esc(e.tripId)}</span></td>
+        <td><div class="driver-cell">
+          <div class="driver-avatar" style="background:${color}">${init}</div>
+          <span class="driver-name">${esc(e.driver)}</span>
+        </div></td>
+        <td class="dist-text">${e.distance.toLocaleString('en-IN')} km</td>
+        <td class="fuel-text">₹${e.fuelCost.toLocaleString('en-IN')}</td>
+        <td class="misc-text">${e.miscExpense?'₹'+e.miscExpense.toLocaleString('en-IN'):'—'}</td>
+        <td><span class="status-badge ${cls}">${e.status}</span></td>
+        <td><div class="actions">
+          <button class="action-btn" title="View"   onclick="viewExpense(${e.id})">👁</button>
+          <button class="action-btn" title="Edit"   onclick="openEdit(${e.id})">✏️</button>
+          <button class="action-btn del" title="Delete" onclick="deleteExpense(${e.id})">✕</button>
+        </div></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  updateStats(data);
+  renderPager(pages, data.length, slice.length, (currentPage-1)*PER_PAGE);
+}
+
+function updateStats(data){
+  const fuel  = data.reduce((s,e)=>s+e.fuelCost,0);
+  const misc  = data.reduce((s,e)=>s+e.miscExpense,0);
+  const dist  = data.reduce((s,e)=>s+e.distance,0);
+  document.getElementById('s-trips').textContent = data.length;
+  document.getElementById('s-fuel').textContent  = '₹'+fuel.toLocaleString('en-IN');
+  document.getElementById('s-misc').textContent  = '₹'+misc.toLocaleString('en-IN');
+  document.getElementById('s-dist').textContent  = dist.toLocaleString('en-IN')+' km';
+  document.getElementById('s-total').textContent = '₹'+(fuel+misc).toLocaleString('en-IN');
+}
+
+function renderPager(pages, total, shown, offset){
+  document.getElementById('pagerInfo').textContent =
+    total===0 ? 'No records' :
+    `Showing ${offset+1}–${offset+shown} of ${total}`;
+  const c = document.getElementById('pagerBtns');
+  c.innerHTML='';
+  const prev=mk('‹','pager-btn');prev.disabled=currentPage===1;
+  prev.onclick=()=>{currentPage--;render();};c.appendChild(prev);
+  for(let p=1;p<=pages;p++){
+    const b=mk(p,'pager-btn'+(p===currentPage?' active':''));
+    b.onclick=(()=>{const n=p;return()=>{currentPage=n;render();}})();
+    c.appendChild(b);
+  }
+  const next=mk('›','pager-btn');next.disabled=currentPage===pages;
+  next.onclick=()=>{currentPage++;render();};c.appendChild(next);
+}
+function mk(t,cls){const b=document.createElement('button');b.textContent=t;b.className=cls;return b;}
+
+/* ── MODAL ── */
+function openModal(){
+  editId=null;
+  document.getElementById('modalTitleText').textContent='New Expense Log';
+  document.getElementById('saveLabel').textContent='💾 Create Log';
+  ['f-tripId','f-driver','f-distance','f-fuelCost','f-miscExpense','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-status').value='Pending';
+  clearErr();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function openEdit(id){
+  const e=expenses.find(x=>x.id===id);if(!e)return;
+  editId=id;
+  document.getElementById('modalTitleText').textContent='Edit Expense Log';
+  document.getElementById('saveLabel').textContent='💾 Save Changes';
+  document.getElementById('f-tripId').value     = e.tripId;
+  document.getElementById('f-driver').value     = e.driver;
+  document.getElementById('f-distance').value   = e.distance;
+  document.getElementById('f-fuelCost').value   = e.fuelCost;
+  document.getElementById('f-miscExpense').value= e.miscExpense||'';
+  document.getElementById('f-status').value     = e.status;
+  document.getElementById('f-notes').value      = e.notes||'';
+  clearErr();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+function closeModalOutside(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDrawer();}});
+
+function clearErr(){document.querySelectorAll('.form-control').forEach(el=>el.classList.remove('err'));}
+
+function saveExpense(){
+  clearErr();
+  const tripId   = document.getElementById('f-tripId').value.trim();
+  const driver   = document.getElementById('f-driver').value.trim();
+  const distance = parseFloat(document.getElementById('f-distance').value)||0;
+  const fuelCost = parseFloat(document.getElementById('f-fuelCost').value)||0;
+  const misc     = parseFloat(document.getElementById('f-miscExpense').value)||0;
+  const status   = document.getElementById('f-status').value;
+  const notes    = document.getElementById('f-notes').value.trim();
+
+  let ok=true;
+  if(!tripId)  { document.getElementById('f-tripId').classList.add('err');   ok=false; }
+  if(!driver)  { document.getElementById('f-driver').classList.add('err');   ok=false; }
+  if(!fuelCost){ document.getElementById('f-fuelCost').classList.add('err'); ok=false; }
+  if(!ok){ showToast(false,'Please fill required fields.','Trip ID, Driver & Fuel Cost are required.'); return; }
+
+  if(editId!==null){
+    const idx=expenses.findIndex(x=>x.id===editId);
+    expenses[idx]={...expenses[idx],tripId,driver,distance,fuelCost,miscExpense:misc,status,notes};
+    showToast(true,'Expense Updated','Changes saved to log #'+tripId+'.');
+  } else {
+    expenses.push({id:nextId++,tripId,driver,distance,fuelCost,miscExpense:misc,status,notes});
+    showToast(true,'Expense Created','New log #'+tripId+' added successfully.');
+  }
+
+  closeModal();
+  render();
+}
+
+/* ── DELETE ── */
+function deleteExpense(id){
+  if(!confirm('Remove this expense log?')) return;
+  expenses=expenses.filter(e=>e.id!==id);
+  showToast(false,'Log Deleted','Expense record removed.','toast-err');
+  render();
+}
+
+/* ── VIEW DRAWER ── */
+function viewExpense(id){
+  const e=expenses.find(x=>x.id===id);if(!e)return;
+  const cls={Done:'s-done','In Progress':'s-progress',Pending:'s-pending'}[e.status]||'s-pending';
+  const color=AVATAR_COLORS[e.id%AVATAR_COLORS.length];
+  const init=e.driver.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('drawerBody').innerHTML=`
+    <div>
+      <div class="drawer-section">Trip Info</div>
+      <div class="drawer-grid">
+        <div class="drawer-field"><div class="drawer-field-label">Trip ID</div><div class="drawer-field-value"><span class="tripid-badge">#${esc(e.tripId)}</span></div></div>
+        <div class="drawer-field"><div class="drawer-field-label">Status</div><div class="drawer-field-value"><span class="status-badge ${cls}">${e.status}</span></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="drawer-section">Driver</div>
+      <div class="driver-cell">
+        <div class="driver-avatar" style="background:${color};width:36px;height:36px;font-size:13px">${init}</div>
+        <span class="driver-name" style="font-size:14px">${esc(e.driver)}</span>
+      </div>
+    </div>
+    <div>
+      <div class="drawer-section">Financials</div>
+      <div class="drawer-grid">
+        <div class="drawer-field"><div class="drawer-field-label">Distance</div><div class="drawer-field-value dist-text">${e.distance.toLocaleString('en-IN')} km</div></div>
+        <div class="drawer-field"><div class="drawer-field-label">Fuel Cost</div><div class="drawer-field-value fuel-text">₹${e.fuelCost.toLocaleString('en-IN')}</div></div>
+        <div class="drawer-field"><div class="drawer-field-label">Misc. Expense</div><div class="drawer-field-value misc-text">${e.miscExpense?'₹'+e.miscExpense.toLocaleString('en-IN'):'—'}</div></div>
+        <div class="drawer-field"><div class="drawer-field-label">Total</div><div class="drawer-field-value" style="color:var(--odoo-accent);font-weight:700;font-family:'IBM Plex Mono',monospace">₹${(e.fuelCost+e.miscExpense).toLocaleString('en-IN')}</div></div>
+      </div>
+    </div>
+    ${e.notes?`<div><div class="drawer-section">Notes</div><div style="font-size:13px;color:var(--text-secondary);line-height:1.6">${esc(e.notes)}</div></div>`:''}
+    <div style="display:flex;gap:8px;padding-top:8px;margin-top:auto">
+      <button class="btn-save" style="flex:1;justify-content:center" onclick="openEdit(${e.id});closeDrawer()">✏️ Edit</button>
+      <button class="btn-cancel" style="flex:1;text-align:center" onclick="deleteExpense(${e.id});closeDrawer()">🗑 Delete</button>
+    </div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeDrawer(){document.getElementById('drawerOverlay').classList.remove('open');}
+function closeDrawerOutside(e){if(e.target===document.getElementById('drawerOverlay'))closeDrawer();}
+
+/* ── EXPORT CSV ── */
+function exportCSV(){
+  const data=getFiltered();
+  const rows=[['Trip ID','Driver','Distance (km)','Fuel Cost (INR)','Misc Expense (INR)','Status','Notes'],
+    ...data.map(e=>[e.tripId,e.driver,e.distance,e.fuelCost,e.miscExpense,e.status,e.notes])];
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='fleet_expenses.csv';a.click();
+  showToast(true,'CSV Exported','Downloaded '+data.length+' records.');
+}
+
+/* ── TOAST ── */
+let toastTimer;
+function showToast(success, title, sub='', extra=''){
+  const t=document.getElementById('toast');
+  document.getElementById('toastIcon').textContent  = success?'✅':'❌';
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastSub').textContent   = sub;
+  t.className='toast '+(success?'':'toast-err ')+extra;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* ── HELPERS ── */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ── INIT ── */
+render();
+</script>
+</body>
+</html>

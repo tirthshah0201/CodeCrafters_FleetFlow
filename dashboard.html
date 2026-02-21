@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetFlow — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0b0d14; --bg2:#10131e; --surface:#171b28; --surface2:#1e2335;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.11);
+  --text:#eceef6; --text2:#7e8499; --text3:#3e4460;
+  --green:#2ecc8f;  --gbg:rgba(46,204,143,.1);  --gbd:rgba(46,204,143,.22);
+  --orange:#ff8f4c; --obg:rgba(255,143,76,.1);  --obd:rgba(255,143,76,.22);
+  --blue:#5b9ef9;   --bbg:rgba(91,158,249,.1);  --bbd:rgba(91,158,249,.22);
+  --purple:#b57bff; --pbg:rgba(181,123,255,.1); --pbd:rgba(181,123,255,.22);
+  --yellow:#f5c842; --ybg:rgba(245,200,66,.1);  --ybd:rgba(245,200,66,.22);
+  --red:#ff5272;    --rbg:rgba(255,82,114,.1);  --rbd:rgba(255,82,114,.22);
+  --r:14px; --rs:8px; --font:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
+  --ease:all .2s cubic-bezier(.4,0,.2,1);
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+
+/* SIDEBAR */
+.sidebar{width:225px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;}
+.logo{display:flex;align-items:center;gap:10px;padding:20px 18px 16px;border-bottom:1px solid var(--border);}
+.logo-box{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:15px;}
+.logo-name{font-size:16px;font-weight:700;letter-spacing:-.3px;}
+.logo-name b{color:var(--blue);}
+.nav{flex:1;padding:10px 0;overflow-y:auto;}
+.nav-sec{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);padding:12px 18px 5px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-left:3px solid transparent;transition:var(--ease);}
+.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text);}
+.nav-item.active{background:rgba(91,158,249,.07);color:var(--blue);border-left-color:var(--blue);font-weight:600;}
+.nav-item .ico{font-size:15px;min-width:18px;}
+.nbadge{margin-left:auto;background:var(--orange);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:9px;}
+.u-av{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+.u-name{font-size:12px;font-weight:600;} .u-role{font-size:11px;color:var(--text2);}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{height:56px;flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;gap:16px;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-title{font-size:15px;font-weight:700;}
+.topbar-sub{font-size:12px;color:var(--text2);font-family:var(--mono);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.tbtn{padding:7px 14px;border-radius:var(--rs);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:var(--ease);border:1px solid var(--border2);background:var(--surface);color:var(--text2);}
+.tbtn:hover{border-color:var(--blue);color:var(--blue);}
+.tbtn.pri{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 3px 12px rgba(91,158,249,.28);}
+.tbtn.pri:hover{background:#4a8ef0;transform:translateY(-1px);}
+.notif{width:34px;height:34px;border-radius:var(--rs);border:1px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;position:relative;transition:var(--ease);}
+.notif:hover{border-color:var(--blue);}
+.ndot{position:absolute;top:7px;right:7px;width:6px;height:6px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg2);}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:22px 24px 40px;}
+.content::-webkit-scrollbar{width:5px;}
+.content::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:99px;}
+
+/* FILTER BAR */
+.fbar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.fgroup{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.flabel{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;white-space:nowrap;}
+.divv{width:1px;height:24px;background:var(--border2);flex-shrink:0;}
+
+.srch-wrap{position:relative;flex:1;min-width:170px;max-width:260px;}
+.srch-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;}
+.srch{width:100%;padding:8px 11px 8px 33px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:var(--ease);}
+.srch:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(91,158,249,.1);}
+.srch::placeholder{color:var(--text3);}
+
+.chip{padding:5px 12px;border-radius:99px;font-family:var(--font);font-size:12px;font-weight:600;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer;transition:var(--ease);white-space:nowrap;}
+.chip:hover{border-color:var(--blue);color:var(--blue);}
+.chip.on{background:var(--bbg);border-color:var(--blue);color:var(--blue);}
+
+.fsel{padding:7px 26px 7px 11px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;outline:none;cursor:pointer;transition:var(--ease);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237e8499' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;}
+.fsel:focus{border-color:var(--blue);}
+
+.clr-btn{padding:5px 12px;border-radius:var(--rs);font-family:var(--font);font-size:11px;font-weight:600;border:1px solid var(--rbd);background:var(--rbg);color:var(--red);cursor:pointer;transition:var(--ease);white-space:nowrap;margin-left:auto;display:none;}
+.clr-btn:hover{background:var(--red);color:#fff;}
+.clr-btn.show{display:block;}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px 16px;position:relative;overflow:hidden;transition:var(--ease);animation:fadeUp .4s ease both;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--blue));opacity:0;transition:opacity .2s;}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.35);border-color:var(--border2);}
+.kpi:hover::before{opacity:1;}
+.kpi-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.kpi-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.kpi-tag{font-size:10px;font-weight:600;padding:3px 8px;border-radius:99px;font-family:var(--mono);}
+.kpi-val{font-size:34px;font-weight:700;font-family:var(--mono);letter-spacing:-2px;line-height:1;margin-bottom:3px;}
+.kpi-lbl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;}
+.kpi-desc{font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:10px;}
+.kpi-bar{height:3px;background:var(--border);border-radius:99px;overflow:hidden;}
+.kpi-fill{height:100%;border-radius:99px;animation:barFill 1s ease .3s both;}
+@keyframes barFill{from{width:0%!important;}}
+
+/* TABLE */
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;animation:fadeUp .4s ease .12s both;}
+.thead{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.thead-title{font-size:14px;font-weight:700;}
+.thead-meta{font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:2px;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--text2);}
+.ldot{width:7px;height:7px;border-radius:50%;}
+
+/* active filter banner */
+.finfo{display:none;align-items:center;gap:7px;flex-wrap:wrap;padding:9px 20px;background:rgba(91,158,249,.05);border-bottom:1px solid var(--bbd);font-size:12px;color:var(--blue);font-weight:500;}
+.finfo.show{display:flex;}
+.ftag{background:var(--bbg);border:1px solid var(--bbd);padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;}
+.fcount{margin-left:auto;color:var(--text3);}
+
+table{width:100%;border-collapse:collapse;}
+thead th{padding:9px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--text3);text-align:left;background:var(--bg2);border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.035);transition:background .15s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover td{background:rgba(91,158,249,.04);}
+td{padding:12px 16px;vertical-align:middle;}
+
+.cnum{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text2);background:var(--surface2);padding:3px 8px;border-radius:5px;display:inline-block;}
+.cveh{display:flex;align-items:center;gap:9px;}
+.cveh-ico{width:32px;height:32px;border-radius:8px;flex-shrink:0;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.cveh-id{font-size:13px;font-weight:700;color:var(--text);}
+.cveh-pl{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.ctype{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);}
+.cdrv{display:flex;align-items:center;gap:8px;}
+.cdrv-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;}
+.cdrv-nm{font-size:13px;color:var(--text);}
+.ccargo{font-size:12px;color:var(--text2);}
+.croute{font-size:12px;color:var(--text2);white-space:nowrap;}
+.carr{color:var(--blue);margin:0 4px;font-weight:700;}
+.cfuel{display:flex;align-items:center;gap:7px;min-width:78px;}
+.fbar2{flex:1;height:4px;background:var(--border);border-radius:99px;overflow:hidden;}
+.ffill{height:100%;border-radius:99px;}
+.fpct{font-size:10px;font-family:var(--mono);color:var(--text2);min-width:25px;}
+
+.sbadge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap;}
+.sbadge::before{content:'';width:5px;height:5px;border-radius:50%;}
+.sg{background:var(--gbg);color:var(--green);border:1px solid var(--gbd);} .sg::before{background:var(--green);}
+.sy{background:var(--ybg);color:var(--yellow);border:1px solid var(--ybd);} .sy::before{background:var(--yellow);}
+.sb{background:var(--bbg);color:var(--blue);border:1px solid var(--bbd);}   .sb::before{background:var(--blue);}
+.sr{background:var(--rbg);color:var(--red);border:1px solid var(--rbd);}    .sr::before{background:var(--red);}
+
+.empty-box{text-align:center;padding:52px 20px;}
+.empty-ico{font-size:38px;margin-bottom:10px;}
+.empty-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+.empty-sub{font-size:12px;color:var(--text3);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:700px){.sidebar{display:none;}.kpi-grid{grid-template-columns:1fr 1fr;}.content{padding:14px;}}
+@media(max-width:480px){.kpi-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-box">✈️</div>
+    <div class="logo-name">Fleet<b>Flow</b></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-sec">Main</div>
+    <div class="nav-item active"><span class="ico">📊</span>Dashboard</div>
+    <div class="nav-item" onclick="window.location.href='vehicle/index.html'"><span class="ico">🚛</span>Vehicle Registry</div>
+    <div class="nav-item"onclick="window.location.href='./performance.html'"><span class="ico">👤</span>Drivers</div>
+    <div class="nav-item" onclick="window.location.href='triptrip/.html'"><span class="ico">📡</span>Trip Dispatcher<span class="nbadge">3</span></div>
+    <div class="nav-item"><span class="icon">🔧</span>Maintenance</div>
+    <div class="nav-item"><span class="icon">💰</span>Trip & Expense</div>
+    <div class="nav-sec">Insights</div>
+    <div class="nav-item"><span class="ico">📈</span>Performance</div>
+    <div class="nav-item"><span class="ico">🔬</span>Analytics</div>
+  </nav>
+  <div class="sidebar-user">
+    <div class="u-av">AM</div>
+    <div><div class="u-name">Alex Manager</div><div class="u-role">Fleet Manager</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="greet">Good morning, Alex 👋</div>
+      <div class="topbar-sub" id="dateStr"></div>
+    </div>
+    <div class="topbar-right">
+      <div class="notif">🔔<div class="ndot"></div></div>
+
+      <button class="tbtn pri" onclick="window.location.href='trip/index.html'">＋ New Trip</button>
+         <button class="tbtn pri" onclick="window.location.href='vehicle/index.html'">＋ New Vehicle</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- FILTER BAR -->
+    <div class="fbar">
+      <!-- Search -->
+      <div class="srch-wrap">
+        <span class="srch-ico">🔍</span>
+        <input class="srch" id="srch" type="text" placeholder="Search vehicle, driver, cargo…" oninput="run()">
+      </div>
+
+      <div class="divv"></div>
+
+      <!-- Vehicle Type -->
+      <div class="fgroup">
+        <span class="flabel">Type:</span>
+        <div class="chip on" data-type="" onclick="pickType(this)">All</div>
+        <div class="chip" data-type="Truck" onclick="pickType(this)">🚛 Truck</div>
+        <div class="chip" data-type="Van"   onclick="pickType(this)">🚐 Van</div>
+        <div class="chip" data-type="Bus"   onclick="pickType(this)">🚌 Bus</div>
+      </div>
+
+      <div class="divv"></div>
+
+      <!-- Status -->
+      <div class="fgroup">
+        <span class="flabel">Status:</span>
+        <select class="fsel" id="ssel" onchange="run()">
+          <option value="">All</option>
+          <option value="On Trip">On Trip</option>
+          <option value="Idle">Idle</option>
+          <option value="Ready">Ready</option>
+          <option value="Offline">Offline</option>
+        </select>
+      </div>
+
+      <!-- Sort -->
+      <div class="fgroup">
+        <span class="flabel">Sort by:</span>
+        <select class="fsel" id="sortsel" onchange="run()">
+          <option value="">Default</option>
+          <option value="id">Trip #</option>
+          <option value="vehicle">Vehicle</option>
+          <option value="driver">Driver</option>
+          <option value="fuel_hi">Fuel ↓ High first</option>
+          <option value="fuel_lo">Fuel ↑ Low first</option>
+        </select>
+      </div>
+
+      <button class="clr-btn" id="clrBtn" onclick="clearAll()">✕ Clear</button>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <!-- TABLE -->
+    <div class="tcard">
+      <div class="thead">
+        <div>
+          <div class="thead-title">Fleet Overview</div>
+          <div class="thead-meta" id="tmeta"></div>
+        </div>
+        <div class="legend">
+          <div class="leg"><div class="ldot" style="background:var(--green)"></div>On Trip</div>
+          <div class="leg"><div class="ldot" style="background:var(--yellow)"></div>Idle</div>
+          <div class="leg"><div class="ldot" style="background:var(--blue)"></div>Ready</div>
+          <div class="leg"><div class="ldot" style="background:var(--red)"></div>Offline</div>
+        </div>
+      </div>
+
+      <!-- Filter info banner -->
+      <div class="finfo" id="finfo"></div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Trip #</th><th>Vehicle</th><th>Type</th><th>Driver</th>
+              <th>Cargo</th><th>Route</th><th>Fuel</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ── DATA ────────────────────────────────────────────
+const FLEET = [
+  {id:1,  vehicle:'TRK-001',plate:'GJ-01-AB-1234',type:'Truck',driver:'John Doe',    status:'On Trip', cargo:'Electronics',    from:'Ahmedabad',  to:'Mumbai',    fuel:78},
+  {id:2,  vehicle:'TRK-047',plate:'GJ-05-CD-5678',type:'Truck',driver:'Maria Chen',  status:'On Trip', cargo:'Textiles',       from:'Surat',      to:'Delhi',     fuel:52},
+  {id:3,  vehicle:'VAN-012',plate:'GJ-07-EF-9012',type:'Van',  driver:'Raj Patel',   status:'Idle',    cargo:'Parcels',        from:'Vadodara',   to:'Pune',      fuel:91},
+  {id:4,  vehicle:'BUS-003',plate:'GJ-03-GH-3456',type:'Bus',  driver:'Luis Torres', status:'Offline', cargo:'Passengers',     from:'Rajkot',     to:'Jaipur',    fuel:34},
+  {id:5,  vehicle:'TRK-088',plate:'GJ-09-IJ-7890',type:'Truck',driver:'Kim Brown',   status:'On Trip', cargo:'Machinery',      from:'Gandhinagar',to:'Hyderabad', fuel:67},
+  {id:6,  vehicle:'VAN-031',plate:'GJ-11-KL-2345',type:'Van',  driver:'Anita Shah',  status:'Ready',   cargo:'Pharmaceuticals',from:'Surat',      to:'Chennai',   fuel:85},
+  {id:7,  vehicle:'TRK-055',plate:'GJ-02-MN-6789',type:'Truck',driver:'Dev Kumar',   status:'On Trip', cargo:'Chemicals',      from:'Bharuch',    to:'Kolkata',   fuel:44},
+  {id:8,  vehicle:'VAN-008',plate:'GJ-06-OP-0123',type:'Van',  driver:'Sara Mehta',  status:'Idle',    cargo:'Food Goods',     from:'Anand',      to:'Bhopal',    fuel:60},
+  {id:9,  vehicle:'TRK-022',plate:'GJ-08-QR-4567',type:'Truck',driver:'Tom Wilson',  status:'Offline', cargo:'Auto Parts',     from:'Morbi',      to:'Nagpur',    fuel:22},
+  {id:10, vehicle:'TRK-099',plate:'GJ-04-ST-8901',type:'Truck',driver:'Priya Joshi', status:'Ready',   cargo:'Steel',          from:'Bhavnagar',  to:'Lucknow',   fuel:96},
+  {id:11, vehicle:'BUS-007',plate:'GJ-10-UV-2233',type:'Bus',  driver:'Ravi Nair',   status:'On Trip', cargo:'Passengers',     from:'Surat',      to:'Ahmedabad', fuel:55},
+  {id:12, vehicle:'VAN-044',plate:'GJ-12-WX-4455',type:'Van',  driver:'Nina Kapoor', status:'Ready',   cargo:'Apparel',        from:'Mumbai',     to:'Baroda',    fuel:73},
+];
+
+const TICO  = {Truck:'🚛',Van:'🚐',Bus:'🚌'};
+const SCLS  = {'On Trip':'sg','Idle':'sy','Ready':'sb','Offline':'sr'};
+const fclr  = f => f>=70?'var(--green)':f>=40?'var(--yellow)':'var(--red)';
+let atype   = '';
+
+// greeting & date
+(()=>{
+  const h = new Date().getHours();
+  document.getElementById('greet').textContent =
+    `Good ${h<12?'morning':h<18?'afternoon':'evening'}, Alex 👋`;
+  document.getElementById('dateStr').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+})();
+
+// sidebar nav
+document.querySelectorAll('.nav-item').forEach(el=>
+  el.addEventListener('click',function(){
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    this.classList.add('active');
+  })
+);
+
+// type chip
+function pickType(el){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  atype = el.dataset.type;
+  run();
+}
+
+// clear all
+function clearAll(){
+  document.getElementById('srch').value='';
+  document.getElementById('ssel').value='';
+  document.getElementById('sortsel').value='';
+  atype='';
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  document.querySelector('[data-type=""]').classList.add('on');
+  run();
+}
+
+// ── MAIN RUN ────────────────────────────────────────
+function run(){
+  const q      = document.getElementById('srch').value.trim().toLowerCase();
+  const status = document.getElementById('ssel').value;
+  const sort   = document.getElementById('sortsel').value;
+  const any    = q || atype || status || sort;
+
+  document.getElementById('clrBtn').classList.toggle('show', !!any);
+
+  // ── FILTER (only exact matches shown) ──
+  let data = FLEET.filter(v=>{
+    if(atype  && v.type   !== atype)  return false;
+    if(status && v.status !== status) return false;
+    if(q && ![v.vehicle,v.driver,v.cargo,v.from,v.to].some(s=>s.toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  // ── SORT ──
+  if(sort==='id')      data.sort((a,b)=>a.id-b.id);
+  if(sort==='vehicle') data.sort((a,b)=>a.vehicle.localeCompare(b.vehicle));
+  if(sort==='driver')  data.sort((a,b)=>a.driver.localeCompare(b.driver));
+  if(sort==='fuel_hi') data.sort((a,b)=>b.fuel-a.fuel);
+  if(sort==='fuel_lo') data.sort((a,b)=>a.fuel-b.fuel);
+
+  // ── FILTER INFO BANNER ──
+  const tags=[];
+  if(atype)  tags.push(atype);
+  if(status) tags.push(status);
+  if(q)      tags.push(`"${q}"`);
+  if(sort){
+    const lbl = document.getElementById('sortsel').selectedOptions[0].text;
+    tags.push(`Sorted: ${lbl}`);
+  }
+  const fi = document.getElementById('finfo');
+  if(tags.length){
+    fi.className='finfo show';
+    fi.innerHTML = `<span>Active filters:</span>`
+      + tags.map(t=>`<span class="ftag">${t}</span>`).join('')
+      + `<span class="fcount">${data.length} result${data.length!==1?'s':''} shown</span>`;
+  } else {
+    fi.className='finfo';
+  }
+
+  renderKPIs(data);
+  renderTable(data, !!any);
+}
+
+// ── KPIs (reflect filtered data) ────────────────────
+function renderKPIs(data){
+  const tot   = data.length;
+  const act   = data.filter(v=>v.status==='On Trip').length;
+  const off   = data.filter(v=>v.status==='Offline').length;
+  const pend  = data.filter(v=>v.status==='Ready').length;
+  const util  = tot?Math.round(act/tot*100):0;
+
+  const cards=[
+    {icon:'🚛',ac:'var(--green)', val:act,     lbl:'Active Fleet',       desc:'Vehicles currently out on the road',             bar:tot?Math.round(act/tot*100):0,  bc:'var(--green)',
+     tag:tot?`${act} of ${tot}`:'-', ts:act>0?'g':'n'},
+    {icon:'🔧',ac:'var(--orange)',val:off,     lbl:'Maintenance Alerts', desc:'Vehicles stuck in the shop for repairs',         bar:tot?Math.round(off/tot*100):0,  bc:'var(--orange)',
+     tag:off>0?`${off} need repair`:'All clear', ts:off>0?'r':'g'},
+    {icon:'📦',ac:'var(--purple)',val:pend,    lbl:'Pending Cargo',      desc:'Deliveries waiting in warehouse for a driver',   bar:tot?Math.round(pend/tot*100):0, bc:'var(--purple)',
+     tag:`${pend} waiting`, ts:'y'},
+    {icon:'📊',ac:'var(--blue)',  val:`${util}%`,lbl:'Utilization Rate', desc:'How much of your fleet is actively working now', bar:util,                           bc:'var(--blue)',
+     tag:`${util}% working`, ts:util>=50?'g':'r'},
+  ];
+
+  const tstyle={
+    g:'background:var(--gbg);color:var(--green);border:1px solid var(--gbd)',
+    r:'background:var(--rbg);color:var(--red);border:1px solid var(--rbd)',
+    y:'background:var(--ybg);color:var(--yellow);border:1px solid var(--ybd)',
+    n:'background:var(--surface2);color:var(--text2);border:1px solid var(--border2)',
+  };
+
+  document.getElementById('kpiGrid').innerHTML = cards.map((c,i)=>`
+    <div class="kpi" style="--ac:${c.ac};animation-delay:${i*.06}s">
+      <div class="kpi-top">
+        <div class="kpi-ico" style="background:${c.ac}18;border:1px solid ${c.ac}40">${c.icon}</div>
+        <div class="kpi-tag" style="${tstyle[c.ts]}">${c.tag}</div>
+      </div>
+      <div class="kpi-val" style="color:${c.ac}">${c.val}</div>
+      <div class="kpi-lbl">${c.lbl}</div>
+      <div class="kpi-desc">${c.desc}</div>
+      <div class="kpi-bar"><div class="kpi-fill" style="width:${c.bar}%;background:${c.bc}"></div></div>
+    </div>
+  `).join('');
+}
+
+// ── TABLE ────────────────────────────────────────────
+function renderTable(data, filtered){
+  document.getElementById('tmeta').textContent = filtered
+    ? `${data.length} of ${FLEET.length} vehicles match your filters`
+    : `Showing all ${FLEET.length} vehicles`;
+
+  const tbody = document.getElementById('tbody');
+
+  if(!data.length){
+    tbody.innerHTML=`<tr><td colspan="8">
+      <div class="empty-box">
+        <div class="empty-ico">🔍</div>
+        <div class="empty-title">No vehicles match your filters</div>
+        <div class="empty-sub">Try adjusting or clearing the filters above</div>
+      </div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map((v,i)=>`
+    <tr style="animation:fadeUp .3s ease ${i*.028}s both">
+      <td><span class="cnum">#${v.id}</span></td>
+      <td>
+        <div class="cveh">
+          <div class="cveh-ico">${TICO[v.type]||'🚛'}</div>
+          <div>
+            <div class="cveh-id">${v.vehicle}</div>
+            <div class="cveh-pl">${v.plate}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="ctype">${v.type}</span></td>
+      <td>
+        <div class="cdrv">
+          <div class="cdrv-av">${v.driver.split(' ').map(x=>x[0]).join('')}</div>
+          <span class="cdrv-nm">${v.driver}</span>
+        </div>
+      </td>
+      <td class="ccargo">${v.cargo}</td>
+      <td class="croute">${v.from}<span class="carr">→</span>${v.to}</td>
+      <td>
+        <div class="cfuel">
+          <div class="fbar2"><div class="ffill" style="width:${v.fuel}%;background:${fclr(v.fuel)}"></div></div>
+          <span class="fpct">${v.fuel}%</span>
+        </div>
+      </td>
+      <td><span class="sbadge ${SCLS[v.status]||''}">${v.status}</span></td>
+    </tr>
+  `).join('');
+}
+
+// boot
+run();
+</script>
+</body>
+</html>

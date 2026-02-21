@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Flow – Driver Performance & Safety Profiles</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --odoo-purple:#714B67;--odoo-primary:#017E84;--odoo-accent:#00C5CD;
+      --odoo-gold:#F0A500;--bg-base:#0D0D0D;--bg-surface:#141414;
+      --bg-card:#1A1A1A;--bg-hover:#222;--border:#2A2A2A;--border-bright:#333;
+      --text-primary:#F0F0F0;--text-secondary:#888;--text-muted:#555;
+      --danger:#E74C3C;--success:#27AE60;--warning:#F39C12;--info:#2980B9;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Sora',sans-serif;background:var(--bg-base);color:var(--text-primary);min-height:100vh;overflow-x:hidden}
+
+    /* ── NAV ── */
+    .topnav{background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;height:56px;gap:32px;position:sticky;top:0;z-index:100}
+    .logo{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;color:var(--odoo-accent);text-decoration:none}
+    .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .nav-links{display:flex;gap:4px;flex:1}
+    .nav-link{padding:6px 14px;border-radius:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;transition:all .2s;white-space:nowrap;user-select:none}
+    .nav-link:hover{background:var(--bg-hover);color:var(--text-primary)}
+    .nav-link.active{background:rgba(0,197,205,.12);color:var(--odoo-accent)}
+    .nav-actions{display:flex;align-items:center;gap:12px}
+    .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer}
+
+    /* ── LAYOUT ── */
+    .main{display:flex;height:calc(100vh - 56px)}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:220px;background:var(--bg-surface);border-right:1px solid var(--border);padding:16px 0;flex-shrink:0;overflow-y:auto}
+    .sidebar-section{padding:8px 16px 4px;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:var(--text-secondary);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+    .sidebar-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+    .sidebar-item.active{background:rgba(0,197,205,.08);color:var(--odoo-accent);border-left-color:var(--odoo-accent)}
+    .sidebar-item .icon{font-size:16px;width:20px;text-align:center}
+
+    /* ── CONTENT ── */
+    .content{flex:1;overflow-y:auto;background:var(--bg-base)}
+
+    /* ── PAGE HEADER ── */
+    .page-header{padding:24px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .breadcrumb{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-family:'IBM Plex Mono',monospace}
+    .breadcrumb span{color:var(--odoo-accent)}
+    .page-title{font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-.3px}
+    .page-title small{display:block;font-size:13px;font-weight:300;color:var(--text-secondary);margin-top:2px}
+    .btn-new{display:flex;align-items:center;gap:8px;background:var(--odoo-primary);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap;box-shadow:0 0 20px rgba(1,126,132,.3)}
+    .btn-new:hover{background:var(--odoo-accent);box-shadow:0 0 28px rgba(0,197,205,.4);transform:translateY(-1px)}
+
+    /* ── TOOLBAR ── */
+    .toolbar{padding:16px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .search-wrap{flex:1;min-width:240px;position:relative}
+    .search-input{width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:9px 16px 9px 38px;font-size:13px;color:var(--text-primary);font-family:'Sora',sans-serif;outline:none;transition:border-color .2s}
+    .search-input::placeholder{color:var(--text-muted)}
+    .search-input:focus{border-color:var(--odoo-primary)}
+    .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px}
+    .toolbar-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:9px 14px;border-radius:8px;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .toolbar-btn:hover{border-color:var(--odoo-primary);color:var(--odoo-accent)}
+    .filter-tab-group{display:flex;gap:4px}
+    .filter-tab{background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;font-size:12px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s}
+    .filter-tab:hover,.filter-tab.active{background:rgba(0,197,205,.12);border-color:var(--odoo-accent);color:var(--odoo-accent)}
+
+    /* ── STATS ── */
+    .stats-row{padding:0 28px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+    .stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
+    .stat-card:hover{border-color:var(--border-bright);transform:translateY(-2px)}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%}
+    .c-drivers::before{background:var(--odoo-accent)}
+    .c-onduty::before{background:var(--success)}
+    .c-score::before{background:var(--odoo-gold)}
+    .c-complaints::before{background:var(--danger)}
+    .c-toprated::before{background:var(--odoo-purple)}
+    .stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;margin-bottom:8px}
+    .stat-value{font-size:26px;font-weight:700;line-height:1}
+    .c-drivers .stat-value{color:var(--odoo-accent)}
+    .c-onduty  .stat-value{color:var(--success)}
+    .c-score   .stat-value{color:var(--odoo-gold)}
+    .c-complaints .stat-value{color:var(--danger)}
+    .c-toprated   .stat-value{color:#C89BC0}
+    .stat-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+    /* ── TABLE ── */
+    .table-wrap{padding:0 28px 28px}
+    .table-container{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    table{width:100%;border-collapse:collapse}
+    thead{background:var(--bg-surface);border-bottom:1px solid var(--border)}
+    th{padding:12px 16px;text-align:left;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;cursor:pointer;white-space:nowrap;user-select:none;transition:color .2s}
+    th:hover{color:var(--odoo-accent)}
+    th .si{margin-left:4px;opacity:.4}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+    tbody tr:last-child{border-bottom:none}
+    tbody tr:hover{background:var(--bg-hover)}
+    td{padding:13px 16px;font-size:13px;vertical-align:middle}
+
+    /* ── CELL STYLES ── */
+    .driver-cell{display:flex;align-items:center;gap:10px}
+    .d-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:'IBM Plex Mono',monospace;border:2px solid transparent}
+    .d-name{font-weight:600;color:var(--text-primary);font-size:13px}
+    .d-role{font-size:11px;color:var(--text-muted);margin-top:1px}
+
+    .license-badge{display:inline-flex;align-items:center;background:rgba(113,75,103,.18);border:1px solid rgba(113,75,103,.35);color:#C89BC0;padding:4px 10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:1px}
+
+    .expiry-text{font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:nowrap}
+    .exp-ok{color:var(--success)}
+    .exp-warn{color:var(--warning)}
+    .exp-danger{color:var(--danger)}
+
+    /* ── PROGRESS BAR ── */
+    .bar-wrap{display:flex;align-items:center;gap:8px;min-width:110px}
+    .bar-bg{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:3px;transition:width .4s}
+    .bar-val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;width:34px;text-align:right}
+
+    /* ── SCORE RING (mini) ── */
+    .score-cell{display:flex;align-items:center;gap:8px}
+    .score-ring{position:relative;width:36px;height:36px;flex-shrink:0}
+    .score-ring svg{transform:rotate(-90deg)}
+    .score-ring .ring-bg{fill:none;stroke:var(--border);stroke-width:3}
+    .score-ring .ring-val{fill:none;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .5s}
+    .score-num{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700}
+
+    /* ── COMPLAINTS ── */
+    .complaint-pill{display:inline-flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;white-space:nowrap}
+    .cp-low{background:rgba(39,174,96,.12);color:#5CDB95;border:1px solid rgba(39,174,96,.25)}
+    .cp-med{background:rgba(243,156,18,.12);color:var(--warning);border:1px solid rgba(243,156,18,.25)}
+    .cp-high{background:rgba(231,76,60,.12);color:var(--danger);border:1px solid rgba(231,76,60,.25)}
+
+    /* ── STATUS BADGE ── */
+    .status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+    .status-badge::before{content:'';width:6px;height:6px;border-radius:50%}
+    .sb-onduty{background:rgba(0,197,205,.10);color:var(--odoo-accent);border:1px solid rgba(0,197,205,.25)}
+    .sb-onduty::before{background:var(--odoo-accent);animation:pulse 1.5s infinite}
+    .sb-offduty{background:rgba(136,136,136,.10);color:#666;border:1px solid rgba(136,136,136,.2)}
+    .sb-offduty::before{background:#555}
+    .sb-leave{background:rgba(243,156,18,.12);color:var(--warning);border:1px solid rgba(243,156,18,.25)}
+    .sb-leave::before{background:var(--warning)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+    /* ── ACTIONS ── */
+    .actions{display:flex;align-items:center;gap:6px}
+    .action-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all .2s}
+    .action-btn:hover{border-color:var(--odoo-primary);color:var(--odoo-accent);background:rgba(0,197,205,.08)}
+    .action-btn.del:hover{border-color:var(--danger);color:var(--danger);background:rgba(231,76,60,.08)}
+
+    /* ── EMPTY ── */
+    .empty-row td{text-align:center;padding:52px;color:var(--text-muted);font-size:13px}
+    .empty-icon{font-size:36px;margin-bottom:10px;display:block}
+
+    /* ── PAGINATION ── */
+    .pager{padding:0 28px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .pager-info{font-size:12px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+    .pager-btns{display:flex;gap:4px}
+    .pager-btn{min-width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:12px;font-family:'IBM Plex Mono',monospace;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;padding:0 8px}
+    .pager-btn:hover{border-color:var(--odoo-primary);color:var(--odoo-accent)}
+    .pager-btn.active{background:var(--odoo-primary);border-color:var(--odoo-primary);color:#fff}
+    .pager-btn:disabled{opacity:.3;cursor:not-allowed}
+
+    /* ── MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .25s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;width:560px;max-width:95vw;transform:translateY(16px) scale(.97);transition:transform .25s;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+    .modal-overlay.open .modal{transform:translateY(0) scale(1)}
+    .modal-header{padding:20px 24px;background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .modal-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px}
+    .modal-title-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--odoo-purple),var(--odoo-primary));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+    .modal-close:hover{border-color:var(--danger);color:var(--danger)}
+    .modal-body{padding:24px;display:flex;flex-direction:column;gap:14px;max-height:72vh;overflow-y:auto}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-group label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace}
+    .form-control{background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text-primary);font-family:'Sora',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;width:100%}
+    .form-control::placeholder{color:var(--text-muted)}
+    .form-control:focus{border-color:var(--odoo-primary);box-shadow:0 0 0 3px rgba(1,126,132,.12)}
+    .form-control.err{border-color:var(--danger)!important}
+    select.form-control{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+    .section-sep{font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:8px;margin-top:4px}
+    .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:10px}
+    .btn-cancel{background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:9px 20px;border-radius:8px;font-size:13px;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s}
+    .btn-cancel:hover{border-color:var(--border-bright);color:var(--text-primary)}
+    .btn-save{background:var(--odoo-primary);border:none;color:#fff;padding:9px 24px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .btn-save:hover{background:var(--odoo-accent);box-shadow:0 0 20px rgba(0,197,205,.35)}
+
+    /* ── DRAWER ── */
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s}
+    .drawer-overlay.open{opacity:1;pointer-events:all}
+    .drawer{position:fixed;top:0;right:-440px;width:420px;max-width:96vw;height:100vh;background:var(--bg-card);border-left:1px solid var(--border-bright);z-index:901;transition:right .3s cubic-bezier(.25,.46,.45,.94);overflow-y:auto;display:flex;flex-direction:column}
+    .drawer-overlay.open .drawer{right:0}
+    .drawer-header{padding:20px 22px;background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .drawer-title{font-size:14px;font-weight:700;color:var(--odoo-accent);font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:8px}
+    .drawer-body{padding:22px;flex:1;display:flex;flex-direction:column;gap:20px}
+    .drawer-section-label{font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px}
+    .drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .d-field label{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:4px}
+    .d-field span{font-size:13px;color:var(--text-primary)}
+
+    /* ── PROFILE CARD in drawer ── */
+    .profile-hero{display:flex;align-items:center;gap:16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+    .hero-avatar{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;font-family:'IBM Plex Mono',monospace;flex-shrink:0}
+    .hero-name{font-size:15px;font-weight:700}
+    .hero-role{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+    /* ── MINI CHART ── */
+    .metric-bars{display:flex;flex-direction:column;gap:10px}
+    .metric-row{display:flex;align-items:center;gap:10px}
+    .metric-label{font-size:11px;color:var(--text-muted);width:120px;flex-shrink:0;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+    .metric-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+    .metric-fill{height:100%;border-radius:4px}
+    .metric-pct{font-size:12px;font-weight:700;font-family:'IBM Plex Mono',monospace;width:36px;text-align:right}
+
+    /* ── TOAST ── */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg-card);border:1px solid var(--success);color:var(--text-primary);padding:14px 20px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 20px rgba(39,174,96,.2);z-index:2000;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+    .toast.show{transform:translateX(0)}
+    .toast.t-err{border-color:var(--danger);box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 20px rgba(231,76,60,.2)}
+    .toast-icon{font-size:18px}
+
+    /* ── REAL-TIME DATE BOX (modal) ── */
+    .realtime-date-box{
+      display:flex;align-items:center;gap:10px;
+      background:rgba(0,197,205,.05);
+      border:1px solid rgba(0,197,205,.2);
+      border-radius:8px;padding:10px 14px;
+      user-select:none;pointer-events:none;cursor:default;
+      position:relative;overflow:hidden;
+    }
+    .realtime-date-box::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(90deg,transparent 60%,rgba(0,197,205,.04));
+      pointer-events:none;
+    }
+    .rtd-dot{
+      width:8px;height:8px;border-radius:50%;
+      background:var(--odoo-accent);flex-shrink:0;
+      animation:rtdpulse 1s step-end infinite;
+      box-shadow:0 0 6px rgba(0,197,205,.6);
+    }
+    @keyframes rtdpulse{0%,100%{opacity:1}50%{opacity:0}}
+    .rtd-inner{display:flex;flex-direction:column;gap:2px;flex:1}
+    .rtd-time{
+      font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;
+      color:var(--odoo-accent);letter-spacing:1.5px;line-height:1;
+    }
+    .rtd-date{
+      font-family:'IBM Plex Mono',monospace;font-size:10px;
+      color:var(--text-muted);letter-spacing:.5px;line-height:1;
+    }
+    .rtd-live-tag{
+      font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;
+      color:var(--odoo-accent);background:rgba(0,197,205,.1);
+      border:1px solid rgba(0,197,205,.25);
+      border-radius:4px;padding:2px 6px;letter-spacing:1px;
+      flex-shrink:0;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+  </style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <a class="logo" href="#">
+    <div class="logo-icon">🚛</div>
+    Fleet Flow
+  </a>
+  <div class="nav-links">
+    <!-- Navigation items removed as requested -->
+  </div>
+  <div class="nav-actions">
+    <div style="font-size:18px;cursor:pointer;color:var(--text-muted)">🔔</div>
+    <div style="font-size:18px;cursor:pointer;color:var(--text-muted)">⚙️</div>
+    <div class="avatar">AD</div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Fleet</div>
+    <div class="sidebar-item active"><span class="icon">👤</span> Drivers</div>
+    <div class="sidebar-section">Safety</div>
+    <div class="sidebar-item active"><span class="icon">🛡️</span> Safety Profiles</div>
+    <div class="sidebar-item"><span class="icon">📊</span> Performance</div>
+    <div class="sidebar-section">Analytics</div>
+    <div class="sidebar-item"><span class="icon">💰</span> Costs</div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb">Fleet Flow / Drivers / <span>Performance & Safety Profiles</span></div>
+        <h1 class="page-title">
+          Driver Performance &amp; Safety Profiles
+          <small>Monitor license validity, completion rate, safety scores &amp; complaint history</small>
+        </h1>
+      </div>
+      <button class="btn-new" onclick="openModal()">＋ Add Driver Profile</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" type="text" id="searchInput" placeholder="Search by name, license, duty status..." oninput="applyFilters()">
+      </div>
+      <div class="filter-tab-group">
+        <button class="filter-tab active" data-f="All"       onclick="setFilter(this)">All</button>
+        <button class="filter-tab"         data-f="On Duty"  onclick="setFilter(this)">On Duty</button>
+        <button class="filter-tab"         data-f="Off Duty" onclick="setFilter(this)">Off Duty</button>
+        <button class="filter-tab"         data-f="On Leave" onclick="setFilter(this)">On Leave</button>
+      </div>
+      <button class="toolbar-btn" onclick="exportCSV()">⬇ Export</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card c-drivers">
+        <div class="stat-label">Total Drivers</div>
+        <div class="stat-value" id="s-total">0</div>
+        <div class="stat-sub">registered profiles</div>
+      </div>
+      <div class="stat-card c-onduty">
+        <div class="stat-label">On Duty</div>
+        <div class="stat-value" id="s-onduty">0</div>
+        <div class="stat-sub">currently active</div>
+      </div>
+      <div class="stat-card c-score">
+        <div class="stat-label">Avg Safety Score</div>
+        <div class="stat-value" id="s-score">0%</div>
+        <div class="stat-sub">fleet average</div>
+      </div>
+      <div class="stat-card c-complaints">
+        <div class="stat-label">Total Complaints</div>
+        <div class="stat-value" id="s-complaints">0</div>
+        <div class="stat-sub">open reports</div>
+      </div>
+      <div class="stat-card c-toprated">
+        <div class="stat-label">Top Performer</div>
+        <div class="stat-value" id="s-top" style="font-size:14px;margin-top:4px">—</div>
+        <div class="stat-sub">highest safety score</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('name')">Driver <span class="si">↕</span></th>
+              <th onclick="sortBy('license')">License # <span class="si">↕</span></th>
+              <th onclick="sortBy('expiry')">Expiry <span class="si">↕</span></th>
+              <th onclick="sortBy('completionRate')">Completion Rate <span class="si">↕</span></th>
+              <th onclick="sortBy('safetyScore')">Safety Score <span class="si">↕</span></th>
+              <th onclick="sortBy('complaints')">Complaints <span class="si">↕</span></th>
+              <th onclick="sortBy('status')">Duty Status <span class="si">↕</span></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="driverTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pager">
+      <div class="pager-info" id="pagerInfo">Showing 0–0 of 0</div>
+      <div class="pager-btns" id="pagerBtns"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOut(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="modal-title-icon">🛡️</div>
+        <span id="modalTitleText">New Driver Profile</span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-sep">Personal Info</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input class="form-control" id="f-name" type="text" placeholder="e.g. Ravi Kumar">
+        </div>
+        <div class="form-group">
+          <label>Role / Vehicle Type</label>
+          <input class="form-control" id="f-role" type="text" placeholder="e.g. Heavy Truck Driver">
+        </div>
+      </div>
+      <div class="section-sep">License Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>License Number *</label>
+          <input class="form-control" id="f-license" type="text" placeholder="e.g. DL-2023-45678">
+        </div>
+        <div class="form-group">
+          <label>Profile Created On</label>
+          <div class="realtime-date-box" id="modalLiveClock">
+            <span class="rtd-dot"></span>
+            <div class="rtd-inner">
+              <span class="rtd-time" id="modalTime">--:--:--</span>
+              <span class="rtd-date" id="modalDate">--- --, ----</span>
+            </div>
+            <span class="rtd-live-tag">LIVE</span>
+          </div>
+        </div>
+      </div>
+      <div class="section-sep">Performance Metrics</div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Trips Completed</label>
+          <input class="form-control" id="f-tripsCompleted" type="number" placeholder="e.g. 45" min="0">
+        </div>
+        <div class="form-group">
+          <label>Trips Assigned</label>
+          <input class="form-control" id="f-tripsAssigned" type="number" placeholder="e.g. 50" min="0">
+        </div>
+        <div class="form-group">
+          <label>Complaints</label>
+          <input class="form-control" id="f-complaints" type="number" placeholder="e.g. 2" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Safety Score (0–100)</label>
+          <input class="form-control" id="f-safety" type="number" placeholder="e.g. 89" min="0" max="100">
+        </div>
+        <div class="form-group">
+          <label>Duty Status</label>
+          <select class="form-control" id="f-status">
+            <option value="On Duty">On Duty</option>
+            <option value="Off Duty">Off Duty</option>
+            <option value="On Leave">On Leave</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveDriver()"><span id="saveLabel">💾 Create Profile</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawerOut(event)">
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">🛡️ Driver Profile</div>
+      <button class="modal-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✅</span>
+  <div>
+    <div style="font-weight:600;font-size:13px" id="toastTitle">Done!</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-top:2px" id="toastSub"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════
+   SEED DATA
+═══════════════════════════ */
+let drivers = [
+  { id:1, name:'John Mathew',    role:'Senior Truck Driver',   license:'DL-2019-23223', expiry:'2026-06-30', tripsCompleted:92, tripsAssigned:100, safetyScore:89, complaints:4, status:'On Duty'  },
+  { id:2, name:'Priya Singh',    role:'Light Vehicle Driver',  license:'DL-2021-44512', expiry:'2025-03-15', tripsCompleted:46, tripsAssigned:50,  safetyScore:95, complaints:1, status:'On Duty'  },
+  { id:3, name:'Ravi Kumar',     role:'Heavy Freight Driver',  license:'DL-2020-77891', expiry:'2027-11-20', tripsCompleted:37, tripsAssigned:40,  safetyScore:72, complaints:8, status:'Off Duty' },
+  { id:4, name:'Sara Thomas',    role:'Fleet Driver',          license:'DL-2022-33104', expiry:'2026-09-01', tripsCompleted:60, tripsAssigned:62,  safetyScore:98, complaints:0, status:'On Duty'  },
+  { id:5, name:'Alex Fernandez', role:'Long-Haul Specialist',  license:'DL-2018-55678', expiry:'2025-01-10', tripsCompleted:28, tripsAssigned:35,  safetyScore:61, complaints:12,status:'On Leave' },
+  { id:6, name:'Meena Iyer',     role:'City Delivery Driver',  license:'DL-2023-88234', expiry:'2028-04-05', tripsCompleted:55, tripsAssigned:56,  safetyScore:93, complaints:2, status:'On Duty'  },
+  { id:7, name:'Deepak Sharma',  role:'Inter-State Driver',    license:'DL-2020-12098', expiry:'2026-07-18', tripsCompleted:81, tripsAssigned:90,  safetyScore:85, complaints:5, status:'Off Duty' },
+];
+let nextId = 8;
+let editId = null;
+let currentFilter = 'All';
+let sortKey = '';
+let sortAsc = true;
+let currentPage = 1;
+const PER_PAGE = 8;
+const AV_COLORS = ['#017E84','#714B67','#F0A500','#2980B9','#8E44AD','#27AE60','#D35400','#C0392B'];
+
+/* ═══════════════════════════
+   HELPERS
+═══════════════════════════ */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function initials(name){ return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function completionRate(d){ return d.tripsAssigned > 0 ? Math.round((d.tripsCompleted/d.tripsAssigned)*100) : 0; }
+
+function expiryClass(dateStr){
+  const diff = (new Date(dateStr) - new Date()) / (1000*60*60*24);
+  if(diff < 0)   return 'exp-danger';
+  if(diff < 90)  return 'exp-warn';
+  return 'exp-ok';
+}
+function formatDate(dateStr){
+  if(!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+function statusClass(s){
+  return {'On Duty':'sb-onduty','Off Duty':'sb-offduty','On Leave':'sb-leave'}[s]||'sb-offduty';
+}
+function scoreColor(n){
+  if(n>=85) return '#27AE60';
+  if(n>=65) return '#F39C12';
+  return '#E74C3C';
+}
+function complaintClass(n){
+  if(n===0)  return 'cp-low';
+  if(n<=4)   return 'cp-med';
+  return 'cp-high';
+}
+
+/* ═══════════════════════════
+   FILTER / SORT
+═══════════════════════════ */
+function getFiltered(){
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let data = drivers.filter(d=>{
+    const mf = currentFilter==='All' || d.status===currentFilter;
+    const ms = !q || d.name.toLowerCase().includes(q) ||
+               d.license.toLowerCase().includes(q) ||
+               d.role.toLowerCase().includes(q) ||
+               d.status.toLowerCase().includes(q);
+    return mf && ms;
+  });
+  if(sortKey){
+    data.sort((a,b)=>{
+      let va = sortKey==='completionRate' ? completionRate(a) : a[sortKey];
+      let vb = sortKey==='completionRate' ? completionRate(b) : b[sortKey];
+      if(typeof va==='string'){ va=va.toLowerCase(); vb=vb.toLowerCase(); }
+      return (va<vb?-1:va>vb?1:0)*(sortAsc?1:-1);
+    });
+  }
+  return data;
+}
+function sortBy(k){ sortKey===k ? sortAsc=!sortAsc : (sortKey=k, sortAsc=true); render(); }
+function setFilter(btn){ document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); currentFilter=btn.dataset.f; currentPage=1; render(); }
+function applyFilters(){ currentPage=1; render(); }
+
+/* ═══════════════════════════
+   RENDER
+═══════════════════════════ */
+function render(){
+  const data  = getFiltered();
+  const pages = Math.max(1,Math.ceil(data.length/PER_PAGE));
+  if(currentPage>pages) currentPage=pages;
+  const slice = data.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
+  const tbody = document.getElementById('driverTable');
+  tbody.innerHTML='';
+
+  if(slice.length===0){
+    tbody.innerHTML=`<tr class="empty-row"><td colspan="8"><span class="empty-icon">📭</span>No driver profiles found.</td></tr>`;
+  } else {
+    slice.forEach(d=>{
+      const rate  = completionRate(d);
+      const color = AV_COLORS[d.id % AV_COLORS.length];
+      const expCls = expiryClass(d.expiry);
+      const sCls   = scoreColor(d.safetyScore);
+      const cCls   = complaintClass(d.complaints);
+      const stCls  = statusClass(d.status);
+      const tr = document.createElement('tr');
+      tr.innerHTML=`
+        <td>
+          <div class="driver-cell">
+            <div class="d-avatar" style="background:${color}22;color:${color};border-color:${color}44">${initials(d.name)}</div>
+            <div>
+              <div class="d-name">${esc(d.name)}</div>
+              <div class="d-role">${esc(d.role)}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="license-badge">${esc(d.license)}</span></td>
+        <td><span class="expiry-text ${expCls}">${formatDate(d.expiry)}</span></td>
+        <td>
+          <div class="bar-wrap">
+            <div class="bar-bg"><div class="bar-fill" style="width:${rate}%;background:${rate>=85?'var(--success)':rate>=60?'var(--warning)':'var(--danger)'}"></div></div>
+            <span class="bar-val" style="color:${rate>=85?'var(--success)':rate>=60?'var(--warning)':'var(--danger)'}">${rate}%</span>
+          </div>
+        </td>
+        <td>
+          <div class="score-cell">
+            ${scoreRingSVG(d.safetyScore, sCls)}
+            <span class="score-num" style="color:${sCls}">${d.safetyScore}%</span>
+          </div>
+        </td>
+        <td><span class="complaint-pill ${cCls}">${d.complaints===0?'✓ None':'⚠ '+d.complaints}</span></td>
+        <td><span class="status-badge ${stCls}">${d.status}</span></td>
+        <td>
+          <div class="actions">
+            <button class="action-btn" title="View Profile" onclick="viewDriver(${d.id})">👁</button>
+            <button class="action-btn" title="Edit"         onclick="openEdit(${d.id})">✏️</button>
+            <button class="action-btn del" title="Delete"   onclick="deleteDriver(${d.id})">✕</button>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  updateStats(data);
+  renderPager(pages, data.length, slice.length, (currentPage-1)*PER_PAGE);
+}
+
+function scoreRingSVG(val, color){
+  const r = 14, circ = 2*Math.PI*r;
+  const offset = circ - (val/100)*circ;
+  return `<svg width="36" height="36" viewBox="0 0 36 36">
+    <circle class="ring-bg" cx="18" cy="18" r="${r}" fill="none" stroke="var(--border)" stroke-width="3" transform="rotate(-90 18 18)"/>
+    <circle cx="18" cy="18" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"
+      stroke-dasharray="${circ}" stroke-dashoffset="${offset}" transform="rotate(-90 18 18)" style="transition:stroke-dashoffset .5s"/>
+  </svg>`;
+}
+
+function updateStats(data){
+  const onDuty = data.filter(d=>d.status==='On Duty').length;
+  const avgScore = data.length ? Math.round(data.reduce((s,d)=>s+d.safetyScore,0)/data.length) : 0;
+  const totalComp = data.reduce((s,d)=>s+d.complaints,0);
+  const top = data.length ? data.reduce((best,d)=>d.safetyScore>best.safetyScore?d:best, data[0]) : null;
+  document.getElementById('s-total').textContent      = data.length;
+  document.getElementById('s-onduty').textContent     = onDuty;
+  document.getElementById('s-score').textContent      = avgScore+'%';
+  document.getElementById('s-complaints').textContent = totalComp;
+  document.getElementById('s-top').textContent        = top ? top.name.split(' ')[0]+' ('+top.safetyScore+'%)' : '—';
+}
+
+function renderPager(pages, total, shown, offset){
+  document.getElementById('pagerInfo').textContent = total===0 ? 'No records' : `Showing ${offset+1}–${offset+shown} of ${total}`;
+  const c = document.getElementById('pagerBtns');
+  c.innerHTML='';
+  const prev=mkBtn('‹'); prev.disabled=currentPage===1; prev.onclick=()=>{currentPage--;render();}; c.appendChild(prev);
+  for(let p=1;p<=pages;p++){
+    const b=mkBtn(p,p===currentPage);
+    b.onclick=(n=>()=>{currentPage=n;render();})(p);
+    c.appendChild(b);
+  }
+  const next=mkBtn('›'); next.disabled=currentPage===pages; next.onclick=()=>{currentPage++;render();}; c.appendChild(next);
+}
+function mkBtn(t,active=false){ const b=document.createElement('button'); b.textContent=t; b.className='pager-btn'+(active?' active':''); return b; }
+
+/* ═══════════════════════════
+   MODAL
+═══════════════════════════ */
+function openModal(){
+  editId=null;
+  document.getElementById('modalTitleText').textContent='New Driver Profile';
+  document.getElementById('saveLabel').textContent='💾 Create Profile';
+  ['f-name','f-role','f-license','f-tripsCompleted','f-tripsAssigned','f-complaints','f-safety'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-status').value='On Duty';
+  clearErr();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function openEdit(id){
+  const d=drivers.find(x=>x.id===id); if(!d) return;
+  editId=id;
+  document.getElementById('modalTitleText').textContent='Edit Driver Profile';
+  document.getElementById('saveLabel').textContent='💾 Save Changes';
+  document.getElementById('f-name').value           = d.name;
+  document.getElementById('f-role').value           = d.role;
+  document.getElementById('f-license').value        = d.license;
+  document.getElementById('f-tripsCompleted').value = d.tripsCompleted;
+  document.getElementById('f-tripsAssigned').value  = d.tripsAssigned;
+  document.getElementById('f-complaints').value     = d.complaints;
+  document.getElementById('f-safety').value         = d.safetyScore;
+  document.getElementById('f-status').value         = d.status;
+  clearErr();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+function closeModalOut(e){ if(e.target===document.getElementById('modalOverlay')) closeModal(); }
+function clearErr(){ document.querySelectorAll('.form-control').forEach(el=>el.classList.remove('err')); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); closeDrawer(); } });
+
+function saveDriver(){
+  clearErr();
+  const name    = document.getElementById('f-name').value.trim();
+  const role    = document.getElementById('f-role').value.trim() || 'Driver';
+  const license = document.getElementById('f-license').value.trim();
+  const tc      = parseInt(document.getElementById('f-tripsCompleted').value)||0;
+  const ta      = parseInt(document.getElementById('f-tripsAssigned').value)||tc;
+  const comp    = parseInt(document.getElementById('f-complaints').value)||0;
+  const safety  = Math.min(100,Math.max(0,parseInt(document.getElementById('f-safety').value)||0));
+  const status  = document.getElementById('f-status').value;
+
+  let ok=true;
+  if(!name)    { document.getElementById('f-name').classList.add('err');    ok=false; }
+  if(!license) { document.getElementById('f-license').classList.add('err'); ok=false; }
+  if(!ok){ showToast(false,'Missing Fields','Name & License are required.'); return; }
+
+  if(editId!==null){
+    const idx=drivers.findIndex(x=>x.id===editId);
+    drivers[idx]={...drivers[idx],name,role,license,tripsCompleted:tc,tripsAssigned:ta,complaints:comp,safetyScore:safety,status};
+    showToast(true,'Profile Updated',name+' profile saved successfully.');
+  } else {
+    drivers.push({id:nextId++,name,role,license,expiry:'',tripsCompleted:tc,tripsAssigned:ta,complaints:comp,safetyScore:safety,status});
+    showToast(true,'Profile Created',name+' added to the fleet.');
+  }
+  closeModal(); render();
+}
+
+/* ═══════════════════════════
+   DRAWER
+═══════════════════════════ */
+function viewDriver(id){
+  const d=drivers.find(x=>x.id===id); if(!d) return;
+  const color=AV_COLORS[d.id%AV_COLORS.length];
+  const rate=completionRate(d);
+  const stCls=statusClass(d.status);
+  const expCls=expiryClass(d.expiry);
+  const sc=scoreColor(d.safetyScore);
+  const cCls=complaintClass(d.complaints);
+
+  document.getElementById('drawerBody').innerHTML=`
+    <div class="profile-hero">
+      <div class="hero-avatar" style="background:${color}22;color:${color};border:2px solid ${color}44">${initials(d.name)}</div>
+      <div>
+        <div class="hero-name">${esc(d.name)}</div>
+        <div class="hero-role">${esc(d.role)}</div>
+        <div style="margin-top:6px"><span class="status-badge ${stCls}">${d.status}</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="drawer-section-label">License Details</div>
+      <div class="drawer-grid">
+        <div class="d-field"><label>License #</label><span><span class="license-badge">${esc(d.license)}</span></span></div>
+        <div class="d-field"><label>Expiry Date</label><span class="expiry-text ${expCls}">${formatDate(d.expiry)}</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="drawer-section-label">Performance Metrics</div>
+      <div class="metric-bars">
+        <div class="metric-row">
+          <span class="metric-label">Completion</span>
+          <div class="metric-track"><div class="metric-fill" style="width:${rate}%;background:${rate>=85?'var(--success)':rate>=60?'var(--warning)':'var(--danger)'}"></div></div>
+          <span class="metric-pct" style="color:${rate>=85?'var(--success)':rate>=60?'var(--warning)':'var(--danger)'}">${rate}%</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Safety Score</span>
+          <div class="metric-track"><div class="metric-fill" style="width:${d.safetyScore}%;background:${sc}"></div></div>
+          <span class="metric-pct" style="color:${sc}">${d.safetyScore}%</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="drawer-section-label">Trip Summary</div>
+      <div class="drawer-grid">
+        <div class="d-field"><label>Trips Completed</label><span style="font-family:'IBM Plex Mono',monospace;color:var(--odoo-accent);font-weight:700">${d.tripsCompleted}</span></div>
+        <div class="d-field"><label>Trips Assigned</label><span style="font-family:'IBM Plex Mono',monospace">${d.tripsAssigned}</span></div>
+        <div class="d-field"><label>Complaints</label><span><span class="complaint-pill ${cCls}">${d.complaints===0?'✓ None':'⚠ '+d.complaints+' filed'}</span></span></div>
+        <div class="d-field"><label>Safety Score</label><span style="font-family:'IBM Plex Mono',monospace;color:${sc};font-weight:700">${d.safetyScore}/100</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:auto;padding-top:4px">
+      <button class="btn-save" style="flex:1;justify-content:center" onclick="openEdit(${d.id});closeDrawer()">✏️ Edit Profile</button>
+      <button class="btn-cancel" style="flex:1;text-align:center" onclick="if(confirm('Delete this driver profile?')){deleteDriver(${d.id});closeDrawer();}">🗑 Delete</button>
+    </div>
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeDrawer(){ document.getElementById('drawerOverlay').classList.remove('open'); }
+function closeDrawerOut(e){ if(e.target===document.getElementById('drawerOverlay')) closeDrawer(); }
+
+/* ═══════════════════════════
+   DELETE
+═══════════════════════════ */
+function deleteDriver(id){
+  if(!confirm('Remove this driver profile?')) return;
+  const d=drivers.find(x=>x.id===id);
+  drivers=drivers.filter(x=>x.id!==id);
+  showToast(false,d?d.name+' removed':'Removed','Driver profile deleted.');
+  render();
+}
+
+/* ═══════════════════════════
+   EXPORT CSV
+═══════════════════════════ */
+function exportCSV(){
+  const data=getFiltered();
+  const rows=[['Name','Role','License','Expiry','Completion %','Safety Score','Complaints','Duty Status'],
+    ...data.map(d=>[d.name,d.role,d.license,d.expiry,completionRate(d)+'%',d.safetyScore+'%',d.complaints,d.status])];
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='driver_safety_profiles.csv';a.click();
+  showToast(true,'CSV Exported',data.length+' driver records downloaded.');
+}
+
+/* ═══════════════════════════
+   TOAST
+═══════════════════════════ */
+let toastTimer;
+function showToast(ok,title,sub=''){
+  const t=document.getElementById('toast');
+  document.getElementById('toastIcon').textContent  = ok?'✅':'❌';
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastSub').textContent   = sub;
+  t.className='toast'+(ok?'':' t-err');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* ═══════════════════════════
+   MODAL REAL-TIME CLOCK
+═══════════════════════════ */
+(function(){
+  const DAYS  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function tickModal(){
+    const now = new Date();
+    const hh  = String(now.getHours()).padStart(2,'0');
+    const mm  = String(now.getMinutes()).padStart(2,'0');
+    const ss  = String(now.getSeconds()).padStart(2,'0');
+    const day = DAYS[now.getDay()];
+    const mon = MONTHS[now.getMonth()];
+    const dd  = String(now.getDate()).padStart(2,'0');
+    const yr  = now.getFullYear();
+    const tEl = document.getElementById('modalTime');
+    const dEl = document.getElementById('modalDate');
+    if(tEl) tEl.textContent = `${hh}:${mm}:${ss}`;
+    if(dEl) dEl.textContent = `${day}, ${mon} ${dd} ${yr}`;
+  }
+  tickModal();
+  setInterval(tickModal, 1000);
+})();
+
+/* ═══════════════════════════
+   INIT
+═══════════════════════════ */
+render();
+</script>
+</body>
+</html>

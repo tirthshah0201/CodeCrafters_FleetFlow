@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeCrafters_FleetFlow — Fleet Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- WELCOME SCREEN -->
+<div class="welcome-screen" id="welcomeScreen">
+  <div class="welcome-logo">✈️</div>
+  <div class="welcome-title">CodeCrafters_FleetFlow</div>
+  <div class="welcome-bar"><div class="welcome-bar-fill"></div></div>
+  <div style="font-size:13px; color:var(--text-dim); font-family:var(--mono);">Initializing modules...</div>
+</div>
+
+<!-- THEME TOGGLE -->
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- LOGOUT MODAL -->
+<div class="modal-overlay" id="logoutModal">
+  <div class="modal">
+    <div class="modal-icon">👋</div>
+    <div class="modal-title">Sign out?</div>
+    <div class="modal-desc">You'll be logged out of your CodeCrafters_FleetFlow session and redirected to the login page.</div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" onclick="confirmLogout()">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LOGIN PAGE ===== -->
+<div id="login-page" class="page active auth-layout">
+  <div class="auth-left">
+    <div class="auth-left-grid"></div>
+    <div class="floating-elements">
+      <div class="float-truck">🚛</div>
+      <div class="float-truck">🚌</div>
+      <div class="float-truck">🚐</div>
+    </div>
+    <div class="brand">
+      <div class="brand-logo">
+        <div class="brand-icon">🚛</div>
+        <div>
+          <div class="brand-name">CodeCrafters_FleetFlow</div>
+          <div class="brand-tagline">Fleet Management System</div>
+        </div>
+      </div>
+      <div class="hero-text">
+        <h1>Intelligent Fleet<br>Operations Hub</h1>
+        <p>Manage your entire fleet and track vehicles in real-time.</p>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-card"><div class="stat-num">2,847</div><div class="stat-label">Active Vehicles</div></div>
+      <div class="stat-card"><div class="stat-num">98.2%</div><div class="stat-label">Uptime SLA</div></div>
+      <div class="stat-card"><div class="stat-num">145</div><div class="stat-label">Fleet Managers</div></div>
+      <div class="stat-card"><div class="stat-num">63ms</div><div class="stat-label">Avg Response</div></div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-title">Welcome back 👋</div>
+        
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Username or Email</label>
+            <div class="input-wrapper" id="login-user-wrap">
+              <span class="input-icon">👤</span>
+              <input type="text" id="loginUser" placeholder="manager@CodeCrafters_FleetFlow.io" autocomplete="username">
+            </div>
+            <div class="field-error" id="loginUserErr">Please enter your username or email</div>
+          </div>
+          
+          <div class="form-group">
+            <label>Password</label>
+            <div class="input-wrapper" id="login-pass-wrap">
+              <span class="input-icon">🔒</span>
+            <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password">
+            <span class="input-icon-end" id="loginPassToggle" onclick="togglePassword('loginPass', 'loginPassToggle')">👁️</span>
+          </div>
+          <div class="field-error" id="loginPassErr">Password is required</div>
+        </div>
+        
+        <div class="checkbox-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="rememberMe">
+            Remember me
+          </label>
+          <a href="#" class="forgot-link" onclick="showToast('Password reset link would be sent to your email!', 'info')">Forgot password?</a>
+        </div>
+        <div class="auth-subtitle">Don't have an account? <a onclick="navigate('register')" href="#">Create one</a></div>
+      </div>
+        
+        <button type="submit" class="btn btn-primary" id="loginBtn">
+          Sign In to Account
+          
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REGISTER PAGE ===== -->
+<div id="register-page" class="page auth-layout">
+  <div class="auth-left">
+    <div class="auth-left-grid"></div>
+    <div class="floating-elements">
+      <div class="float-truck">🚛</div>
+      <div class="float-truck">🚚</div>
+      <div class="float-truck">🏎️</div>
+    </div>
+    <div class="brand">
+      <div class="brand-logo">
+        <div class="brand-icon">🚛</div>
+        <div>
+          <div class="brand-name">CodeCrafters_FleetFlow</div>
+          <div class="brand-tagline">Fleet Management System</div>
+        </div>
+      </div>
+      <div class="hero-text">
+        <h1>Join the<br>CodeCrafters_FleetFlow<br>Network</h1>
+        <p>Get access to powerful fleet management tools, real-time tracking, and automated dispatch systems.</p>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-card"><div class="stat-num">3</div><div class="stat-label">User Roles</div></div>
+      <div class="stat-card"><div class="stat-num">256-bit</div><div class="stat-label">Encryption</div></div>
+      <div class="stat-card"><div class="stat-num">JWT</div><div class="stat-label">Auth Tokens</div></div>
+      <div class="stat-card"><div class="stat-num">99.9%</div><div class="stat-label">Availability</div></div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="progress-steps">
+          <div class="step active"></div>
+          <div class="step"></div>
+          <div class="step"></div>
+        </div>
+        <div class="auth-title">Create account</div>
+        <div class="auth-subtitle">Already a member? <a onclick="navigate('login')" href="#">Sign in</a></div>
+      </div>
+
+      <form id="registerForm" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label>Full Name</label>
+          <div class="input-wrapper" id="reg-name-wrap">
+            <span class="input-icon">✨</span>
+            <input type="text" id="regName" placeholder="Alex Johnson" oninput="validateName()">
+          </div>
+          <div class="field-error" id="regNameErr">Full name is required</div>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrapper" id="reg-email-wrap">
+            <span class="input-icon">📧</span>
+            <input type="email" id="regEmail" placeholder="alex@company.com" oninput="validateEmail()">
+          </div>
+          <div class="field-error" id="regEmailErr">Please enter a valid email address</div>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrapper" id="reg-pass-wrap">
+            <span class="input-icon">🔑</span>
+            <input type="password" id="regPass" placeholder="Min 8 characters" oninput="checkStrength()" autocomplete="new-password">
+            <span class="input-icon-end" onclick="togglePassword('regPass', this)">👁️</span>
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+          <div class="strength-text" id="strengthText" style="color:var(--text-dim)">Enter a password</div>
+          <div class="field-error" id="regPassErr">Password must be at least 8 characters</div>
+        </div>
+
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <div class="input-wrapper" id="reg-confirm-wrap">
+            <span class="input-icon">🔑</span>
+            <input type="password" id="regConfirm" placeholder="Repeat password" oninput="validateConfirm()" autocomplete="new-password">
+            <span class="input-icon-end" onclick="togglePassword('regConfirm', this)">👁️</span>
+          </div>
+          <div class="field-error" id="regConfirmErr">Passwords do not match</div>
+        </div>
+
+        <div class="form-group">
+          <label>Select Role</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🎭</span>
+            <select id="regRole">
+              <option value="">Choose your role...</option>
+              <option value="manager">👑 Manager — Full Access</option>
+              <option value="dispatcher">📡 Dispatcher — Operations</option>
+              <option value="safety">🛡️ Safety Officer — Compliance</option>
+            </select>
+          </div>
+          <div class="field-error" id="regRoleErr">Please select a role</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="regBtn">
+          Create Account
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD PAGE ===== -->
+<div id="dashboard-page" class="page" style="flex-direction: column;">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">Fleet<span>Flow</span></div>
+      <div class="breadcrumb" id="dashBreadcrumb">Dashboard</div>
+    </div>
+    <div class="topbar-right">
+      <span class="role-pill" id="rolePill">MANAGER</span>
+      <div class="user-avatar" id="userAvatar">AM</div>
+      <button class="logout-btn" onclick="showLogoutModal()">Sign Out</button>
+      <button class="theme-toggle" style="position:relative;top:0;right:0;width:36px;height:36px;font-size:15px;" onclick="toggleTheme()" id="themeBtn2">🌙</button>
+    </div>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="dash-layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar"></div>
+
+    <!-- CONTENT -->
+    <div class="main-content" id="mainContent">
+      <!-- Dynamically populated -->
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
